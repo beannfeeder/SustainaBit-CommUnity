@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
+      providers: const [
         // Add your providers here
         // Example: ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
