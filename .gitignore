@@ -77,3 +77,7 @@ coverage/
 
 # Metadata
 .metadata
+
+# Developer-specific
+devtools_options.yaml
+package-lock.json
