@@ -93,7 +93,8 @@ class StorageService {
   }
 
   /// Get user token from secure storage
-  /// Returns null if no token is stored or if retrieval fails
+  /// Returns null if no token is stored
+  /// Throws an exception if the retrieval operation fails
   static Future<String?> getUserToken() async {
     try {
       return await _secureStorage.read(key: AppConstants.userTokenKey);
