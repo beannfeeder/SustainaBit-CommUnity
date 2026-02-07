@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'src/config/app_theme.dart';
 import 'src/routes/app_router.dart';
 
-void main() {
+Future<void> main() async {
+  await StorageService.init();
   runApp(const MyApp());
 }
 
