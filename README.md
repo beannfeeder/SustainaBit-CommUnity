@@ -56,7 +56,7 @@ lib/
 
 ### 🛠️ Services Layer
 - **ApiService**: Base HTTP service with GET, POST, PUT, DELETE methods
-- **StorageService**: Local storage wrapper using SharedPreferences
+- **StorageService**: Local storage with SharedPreferences and secure token storage using FlutterSecureStorage (Keychain/Keystore)
 - Centralized error handling
 - Easy to extend for specific API endpoints
 
