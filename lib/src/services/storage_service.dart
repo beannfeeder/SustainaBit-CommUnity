@@ -1,9 +1,12 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/app_constants.dart';
 
 /// Service for managing local storage
+/// Uses SharedPreferences for general data and FlutterSecureStorage for sensitive data
 class StorageService {
   static SharedPreferences? _prefs;
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   /// Initialize the storage service
   static Future<void> init() async {
@@ -74,19 +77,41 @@ class StorageService {
   }
 
   // Convenience methods for common keys
+  // Note: Error messages include exception details for debugging purposes.
+  // In production, consider sanitizing error messages and logging detailed errors separately.
 
-  /// Save user token
-  static Future<bool> saveUserToken(String token) async {
-    return await setString(AppConstants.userTokenKey, token);
+  /// Save user token securely using platform Keychain/Keystore
+  /// This ensures the token is encrypted and stored securely
+  /// Throws an exception if the save operation fails
+  static Future<void> saveUserToken(String token) async {
+    try {
+      await _secureStorage.write(
+        key: AppConstants.userTokenKey,
+        value: token,
+      );
+    } catch (e) {
+      throw Exception('Failed to save user token: $e');
+    }
   }
 
-  /// Get user token
-  static String? getUserToken() {
-    return getString(AppConstants.userTokenKey);
+  /// Get user token from secure storage
+  /// Returns null if no token is stored
+  /// Throws an exception if the retrieval operation fails
+  static Future<String?> getUserToken() async {
+    try {
+      return await _secureStorage.read(key: AppConstants.userTokenKey);
+    } catch (e) {
+      throw Exception('Failed to retrieve user token: $e');
+    }
   }
 
-  /// Remove user token
-  static Future<bool> removeUserToken() async {
-    return await remove(AppConstants.userTokenKey);
+  /// Remove user token from secure storage
+  /// Throws an exception if the delete operation fails
+  static Future<void> removeUserToken() async {
+    try {
+      await _secureStorage.delete(key: AppConstants.userTokenKey);
+    } catch (e) {
+      throw Exception('Failed to remove user token: $e');
+    }
   }
 }

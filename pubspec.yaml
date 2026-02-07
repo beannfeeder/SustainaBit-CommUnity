@@ -23,6 +23,7 @@ dependencies:
   
   # UI
   flutter_svg: ^2.0.0
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +33,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   
+  # Assets
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/

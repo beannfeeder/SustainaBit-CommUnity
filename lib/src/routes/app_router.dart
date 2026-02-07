@@ -7,6 +7,7 @@ import '../screens/splash_screen.dart';
 import '../screens/registration_screen.dart';
 import '../screens/welcome_registration_screen.dart';
 
+
 /// Central routing configuration for the app
 /// Uses go_router for declarative routing with deep linking support
 class AppRouter {
