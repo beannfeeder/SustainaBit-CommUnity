@@ -77,6 +77,8 @@ class StorageService {
   }
 
   // Convenience methods for common keys
+  // Note: Error messages include exception details for debugging purposes.
+  // In production, consider sanitizing error messages and logging detailed errors separately.
 
   /// Save user token securely using platform Keychain/Keystore
   /// This ensures the token is encrypted and stored securely
