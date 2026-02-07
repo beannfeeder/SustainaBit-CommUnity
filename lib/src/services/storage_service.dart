@@ -77,23 +77,41 @@ class StorageService {
   }
 
   // Convenience methods for common keys
+  // Note: Error messages include exception details for debugging purposes.
+  // In production, consider sanitizing error messages and logging detailed errors separately.
 
   /// Save user token securely using platform Keychain/Keystore
   /// This ensures the token is encrypted and stored securely
+  /// Throws an exception if the save operation fails
   static Future<void> saveUserToken(String token) async {
-    await _secureStorage.write(
-      key: AppConstants.userTokenKey,
-      value: token,
-    );
+    try {
+      await _secureStorage.write(
+        key: AppConstants.userTokenKey,
+        value: token,
+      );
+    } catch (e) {
+      throw Exception('Failed to save user token: $e');
+    }
   }
 
   /// Get user token from secure storage
+  /// Returns null if no token is stored
+  /// Throws an exception if the retrieval operation fails
   static Future<String?> getUserToken() async {
-    return await _secureStorage.read(key: AppConstants.userTokenKey);
+    try {
+      return await _secureStorage.read(key: AppConstants.userTokenKey);
+    } catch (e) {
+      throw Exception('Failed to retrieve user token: $e');
+    }
   }
 
   /// Remove user token from secure storage
+  /// Throws an exception if the delete operation fails
   static Future<void> removeUserToken() async {
-    await _secureStorage.delete(key: AppConstants.userTokenKey);
+    try {
+      await _secureStorage.delete(key: AppConstants.userTokenKey);
+    } catch (e) {
+      throw Exception('Failed to remove user token: $e');
+    }
   }
 }
