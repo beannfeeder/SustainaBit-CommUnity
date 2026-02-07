@@ -1,9 +1,12 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/app_constants.dart';
 
 /// Service for managing local storage
+/// Uses SharedPreferences for general data and FlutterSecureStorage for sensitive data
 class StorageService {
   static SharedPreferences? _prefs;
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   /// Initialize the storage service
   static Future<void> init() async {
@@ -75,18 +78,22 @@ class StorageService {
 
   // Convenience methods for common keys
 
-  /// Save user token
-  static Future<bool> saveUserToken(String token) async {
-    return await setString(AppConstants.userTokenKey, token);
+  /// Save user token securely using platform Keychain/Keystore
+  /// This ensures the token is encrypted and stored securely
+  static Future<void> saveUserToken(String token) async {
+    await _secureStorage.write(
+      key: AppConstants.userTokenKey,
+      value: token,
+    );
   }
 
-  /// Get user token
-  static String? getUserToken() {
-    return getString(AppConstants.userTokenKey);
+  /// Get user token from secure storage
+  static Future<String?> getUserToken() async {
+    return await _secureStorage.read(key: AppConstants.userTokenKey);
   }
 
-  /// Remove user token
-  static Future<bool> removeUserToken() async {
-    return await remove(AppConstants.userTokenKey);
+  /// Remove user token from secure storage
+  static Future<void> removeUserToken() async {
+    await _secureStorage.delete(key: AppConstants.userTokenKey);
   }
 }
