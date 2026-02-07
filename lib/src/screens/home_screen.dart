@@ -12,6 +12,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
+          // 已经去掉了之前的登出按钮，只保留设置图标
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => context.push('/settings'),

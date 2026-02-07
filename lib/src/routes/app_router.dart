@@ -4,17 +4,31 @@ import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/splash_screen.dart';
+import '../screens/registration_screen.dart';
+import '../screens/welcome_registration_screen.dart';
 
 /// Central routing configuration for the app
 /// Uses go_router for declarative routing with deep linking support
 class AppRouter {
   static final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: '/registration',
     routes: [
       GoRoute(
         path: '/',
         name: 'splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+      // --- 2. 添加注册页面路由 ---
+      GoRoute(
+        path: '/registration',
+        name: 'registration',
+        builder: (context, state) => const RegistrationScreen(),
+      ),
+      // --- 3. 添加社区选择页面路由 ---
+      GoRoute(
+        path: '/welcome-registration',
+        name: 'welcome-registration',
+        builder: (context, state) => const WelcomeRegistrationScreen(),
       ),
       GoRoute(
         path: '/home',
