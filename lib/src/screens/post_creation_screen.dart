@@ -46,20 +46,27 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            
             // Title Field
             const Text(
-              'Title:',
+              'TITLE',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: Colors.grey,
+                letterSpacing: 0.5,
               ),
             ),
+                       
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+              ),
               decoration: InputDecoration(
-                hintText: 'xxx xxx xx x',
+                hintText: 'Title goes here...',
                 hintStyle: TextStyle(color: Colors.grey[500]),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -99,11 +106,16 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 children: [
                   TextField(
                     controller: _descriptionController,
+                    style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    ),
                     maxLines: 8,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Describe your post...',
+                      hintStyle: TextStyle(color: Colors.grey[500]),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(16),
+                      contentPadding: const EdgeInsets.all(16),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -129,7 +141,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                           'AI ENHANCE DESCRIPTION',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: Colors.grey,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.3,
                           ),

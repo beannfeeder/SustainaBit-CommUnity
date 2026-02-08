@@ -89,8 +89,10 @@ class _SearchScreenState extends State<SearchScreen> {
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
+              style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                 hintText: 'Search for issues, announcements...',
+                hintStyle: const TextStyle(color: Colors.grey),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
