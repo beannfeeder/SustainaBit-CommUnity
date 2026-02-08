@@ -23,6 +23,10 @@ dependencies:
   
   # UI
   flutter_svg: ^2.0.0
+  flutter_secure_storage: ^9.0.0
+
+  # Web compatibility
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
