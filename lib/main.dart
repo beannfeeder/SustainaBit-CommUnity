@@ -29,4 +29,4 @@ class MyApp extends StatelessWidget {
         routerConfig: AppRouter.router, // 确保指向你的路由配置
       ),
     );
-  }
+  }}
