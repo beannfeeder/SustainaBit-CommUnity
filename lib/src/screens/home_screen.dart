@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // TODO: Open drawer/menu
         },
         onSearchPressed: () {
-          // TODO: Navigate to search
+          context.push('/search');
         },
         onNotificationPressed: () {
           // TODO: Navigate to notifications

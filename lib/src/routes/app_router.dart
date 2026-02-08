@@ -6,6 +6,7 @@ import '../screens/settings_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/registration_screen.dart';
 import '../screens/welcome_registration_screen.dart';
+import '../screens/search_screen.dart';
 
 
 /// Central routing configuration for the app
@@ -45,6 +46,11 @@ class AppRouter {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/search',
+        name: 'search',
+        builder: (context, state) => const SearchScreen(),
       ),
     ],
     errorBuilder: (context, state) => const ErrorScreen(),
