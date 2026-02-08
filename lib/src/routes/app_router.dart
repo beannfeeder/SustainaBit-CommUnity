@@ -6,6 +6,7 @@ import '../screens/settings_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/registration_screen.dart';
 import '../screens/welcome_registration_screen.dart';
+import '../screens/post_detail_screen.dart';
 
 
 /// Central routing configuration for the app
@@ -35,6 +36,11 @@ class AppRouter {
         path: '/home',
         name: 'home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/post-detail',
+        name: 'post-detail',
+        builder: (context, state) => const PostDetailScreen(),
       ),
       GoRoute(
         path: '/profile',
