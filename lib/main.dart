@@ -14,7 +14,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-@override
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
@@ -29,4 +29,5 @@ class MyApp extends StatelessWidget {
         routerConfig: AppRouter.router, // 确保指向你的路由配置
       ),
     );
-  }}
+  }
+}
