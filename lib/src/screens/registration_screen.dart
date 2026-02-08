@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // 1. 添加此导入以支持跳转
+import 'package:go_router/go_router.dart';
+import '../services/auth_service.dart';
 
 class RegistrationScreen extends StatelessWidget {
   const RegistrationScreen({super.key});
@@ -30,8 +31,20 @@ class RegistrationScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 54,
                 child: OutlinedButton.icon(
-                  // 2. 修改此处的跳转逻辑
-                  onPressed: () => context.go('/welcome-registration'), 
+                  onPressed: () async {
+                    try {
+                      final userCredential = await AuthService().signInWithGoogle();
+                      if (userCredential != null && context.mounted) {
+                        context.go('/welcome-registration');
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Login failed: $e')),
+                        );
+                      }
+                    }
+                  },
                   icon: const Icon(Icons.login, color: Colors.black),
                   label: const Text(
                     "Login with Google",

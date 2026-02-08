@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'src/config/app_theme.dart';
 import 'src/routes/app_router.dart';
 import 'src/services/storage_service.dart';
+// import 'firebase_options.dart'; // TODO: Uncomment after running flutterfire configure
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  try {
+      // TODO: Add options: DefaultFirebaseOptions.currentPlatform after running flutterfire configure
+      await Firebase.initializeApp();
+  } catch (e) {
+      debugPrint("Firebase initialization failed: $e");
+  }
+  
   await StorageService.init();
 
   runApp(const MyApp());
