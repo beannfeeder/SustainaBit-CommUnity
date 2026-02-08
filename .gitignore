@@ -47,3 +47,37 @@ ios/Flutter/flutter_export_environment.sh
 ios/Runner/GeneratedPluginRegistrant.h
 ios/Runner/GeneratedPluginRegistrant.m
 ios/Flutter/Generated.xcconfig
+
+# Temporary files
+tmp*
+*.tmp
+
+# Android/Gradle
+android/.gradle/
+android/gradle/
+android/captures/
+android/.externalNativeBuild
+android/.cxx
+
+# iOS/CocoaPods
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Podfile.lock
+*.perspectivev3
+!/default.perspectivev3
+xcuserdata/
+*.xcworkspace
+
+# Coverage
+coverage/
+
+# Flutter Version Management
+.fvm/
+
+# Metadata
+.metadata
+
+# Developer-specific
+devtools_options.yaml
+package-lock.json

@@ -131,7 +131,7 @@ class _IssuePageState extends State<IssuePage> {
           color: isSelected ? Colors.white : Colors.transparent,
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : null,
+          boxShadow: isSelected ? const [BoxShadow(color: Colors.black12, blurRadius: 4)] : null,
         ),
         child: Text(
           label,
@@ -289,7 +289,7 @@ class IssueDetailPage extends StatelessWidget {
                 color: color,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)],
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
               ),
             ),
             if (!isLast) Container(width: 2, height: 40, color: Colors.grey.shade300),
