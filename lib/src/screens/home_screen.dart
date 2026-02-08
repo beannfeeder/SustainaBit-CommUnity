@@ -71,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     comments: '56 comments',
                     duplicatePostLabel: 'Duplicated Post',
                     onTap: () {
-                      // TODO: Navigate to post detail
-                      context.push('/issue-detail');
+                      // Navigate to post detail screen
+                      context.push('/post-detail');
                     },
                     onLike: () {
                       // TODO: Handle like action
