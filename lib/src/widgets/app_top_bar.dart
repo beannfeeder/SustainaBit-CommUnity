@@ -65,9 +65,9 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
             child: CircleAvatar(
               radius: 18,
               backgroundColor: Colors.white,
-              child: Icon(
+              child: const Icon(
                 Icons.person,
-                color: const Color(0xFF4A90E2),
+                color: Color(0xFF4A90E2),
                 size: 20,
               ),
             ),
