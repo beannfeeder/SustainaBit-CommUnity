@@ -42,3 +42,40 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android/Gradle
+android/.gradle/
+android/gradle/
+android/captures/
+android/.externalNativeBuild
+android/.cxx
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/local.properties
+
+# iOS/CocoaPods
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Podfile.lock
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+*.perspectivev3
+!/default.perspectivev3
+xcuserdata/
+*.xcworkspace
+
+# Coverage
+coverage/
+
+# Flutter Version Management
+.fvm/
+
+# Metadata
+.metadata
+
+# Temporary files
+tmpclaude-*/
+
+# Developer-specific
+devtools_options.yaml
+package-lock.json
