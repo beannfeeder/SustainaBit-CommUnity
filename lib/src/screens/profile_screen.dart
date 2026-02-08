@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../widgets/custom_card.dart'; // You might want to create specialized cards for the feed later
+
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
