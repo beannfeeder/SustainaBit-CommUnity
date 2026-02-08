@@ -62,12 +62,12 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.only(right: 12),
           child: GestureDetector(
             onTap: onProfilePressed ?? () {},
-            child: CircleAvatar(
+            child: const CircleAvatar(
               radius: 18,
               backgroundColor: Colors.white,
               child: Icon(
                 Icons.person,
-                color: const Color(0xFF4A90E2),
+                color: Color(0xFF4A90E2),
                 size: 20,
               ),
             ),

@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // TODO: Open drawer/menu
         },
         onSearchPressed: () {
-          // TODO: Navigate to search
+          context.push('/search');
         },
         onNotificationPressed: () {
           // TODO: Navigate to notifications
@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: CreateButton(
         onPressed: () {
-          // TODO: Navigate to create post screen
+          context.push('/post-creation');
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
