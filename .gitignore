@@ -54,7 +54,7 @@ tmp*
 
 # Android/Gradle
 android/.gradle/
-android/gradle/
+
 android/captures/
 android/.externalNativeBuild
 android/.cxx

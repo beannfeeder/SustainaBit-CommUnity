@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
-
-
-
 import 'src/config/app_theme.dart';
 import 'src/routes/app_router.dart';
 import 'src/services/storage_service.dart';
