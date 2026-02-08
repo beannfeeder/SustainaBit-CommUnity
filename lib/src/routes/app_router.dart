@@ -7,6 +7,7 @@ import '../screens/splash_screen.dart';
 import '../screens/registration_screen.dart';
 import '../screens/welcome_registration_screen.dart';
 import '../screens/search_screen.dart';
+import '../screens/post_creation_screen.dart';
 
 
 /// Central routing configuration for the app
@@ -51,6 +52,11 @@ class AppRouter {
         path: '/search',
         name: 'search',
         builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/post-creation',
+        name: 'post-creation',
+        builder: (context, state) => const PostCreationScreen(),
       ),
     ],
     errorBuilder: (context, state) => const ErrorScreen(),

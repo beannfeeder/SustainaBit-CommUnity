@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: CreateButton(
         onPressed: () {
-          // TODO: Navigate to create post screen
+          context.push('/post-creation');
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
