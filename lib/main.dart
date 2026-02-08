@@ -4,9 +4,6 @@ import 'package:provider/provider.dart';
 
 
 
-void main() {
-
-
 import 'src/config/app_theme.dart';
 import 'src/routes/app_router.dart';
 import 'src/services/storage_service.dart';
@@ -21,7 +18,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-@override
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
@@ -37,3 +34,4 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
