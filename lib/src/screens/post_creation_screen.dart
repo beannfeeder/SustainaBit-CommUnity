@@ -12,7 +12,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   String? _selectedLocation;
-  List<String> _uploadedFiles = [];
+  final List<String> _uploadedFiles = [];
 
   @override
   void dispose() {
@@ -348,8 +348,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
       return;
     }
 
-      return;
-    }
+
 
     // Use values to suppress unused warning
     debugPrint('Location: $_selectedLocation');
