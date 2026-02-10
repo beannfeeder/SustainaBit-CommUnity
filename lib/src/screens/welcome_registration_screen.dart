@@ -70,8 +70,8 @@ class WelcomeRegistrationScreen extends StatelessWidget {
                   border: Border.all(color: Colors.black),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Expanded(
                       child: Text("Warf Residences, Bukit Jalil"),
                     ),

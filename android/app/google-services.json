@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "288506954328",
+    "project_id": "sustainabit-community",
+    "storage_bucket": "sustainabit-community.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288506954328:android:37aa28114b50e1c29d402d",
+        "android_client_info": {
+          "package_name": "com.sustainabit.community"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF0wB6-Slu-gtuYP8jMm9Cgd2vLdTFLTM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

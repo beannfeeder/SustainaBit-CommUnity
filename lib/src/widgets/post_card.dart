@@ -40,6 +40,7 @@ class PostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
+      color: const Color(0xFFF5F5F0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
