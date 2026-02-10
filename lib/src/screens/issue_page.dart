@@ -2,6 +2,7 @@
 // 在文件末尾添加了 IssueDetailPage 类
 
 import 'package:flutter/material.dart';
+import '../widgets/management_bottom_nav.dart';
 
 class IssuePage extends StatefulWidget {
   const IssuePage({super.key});
@@ -114,6 +115,7 @@ class _IssuePageState extends State<IssuePage> {
           ),
         ],
       ),
+      bottomNavigationBar: const ManagementBottomNav(currentIndex: 2),
     );
   }
 
