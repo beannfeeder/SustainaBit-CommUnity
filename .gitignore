@@ -82,3 +82,6 @@ coverage/
 # Developer-specific
 devtools_options.yaml
 package-lock.json
+
+# Firebase
+firebase_options.dart
