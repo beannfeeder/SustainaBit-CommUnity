@@ -12,7 +12,12 @@
           "package_name": "com.sustainabit.community"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "288506954328-8js406iboph0nij4qqabua8lk4uul5no.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDF0wB6-Slu-gtuYP8jMm9Cgd2vLdTFLTM"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "288506954328-8js406iboph0nij4qqabua8lk4uul5no.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "288506954328-kqj3qrelnfct4bjkjuvp2pt07be25cn5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sustainabit.community"
+              }
+            }
+          ]
         }
       }
     }
