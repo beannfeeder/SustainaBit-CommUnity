@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>288506954328-kqj3qrelnfct4bjkjuvp2pt07be25cn5.apps.googleusercontent.com</string>
+	<string>243769216237-ghg627ibato36q5qqgv2qrl452vih34n.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.288506954328-kqj3qrelnfct4bjkjuvp2pt07be25cn5</string>
+	<string>com.googleusercontent.apps.243769216237-ghg627ibato36q5qqgv2qrl452vih34n</string>
 	<key>API_KEY</key>
-	<string>AIzaSyARtCM6qCmBkO0BJZjbhA-dPXk3EkBwn8U</string>
+	<string>AIzaSyCuIygjAIvgaqAYk1KEVBofMQU-LL3zldo</string>
 	<key>GCM_SENDER_ID</key>
-	<string>288506954328</string>
+	<string>243769216237</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.sustainabit.community</string>
 	<key>PROJECT_ID</key>
-	<string>sustainabit-community</string>
+	<string>sustainabit-c2211</string>
 	<key>STORAGE_BUCKET</key>
-	<string>sustainabit-community.firebasestorage.app</string>
+	<string>sustainabit-c2211.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:288506954328:ios:b3e9a0bfe8b934779d402d</string>
+	<string>1:243769216237:ios:0d5002dd2e197616bc50e4</string>
 </dict>
 </plist>
