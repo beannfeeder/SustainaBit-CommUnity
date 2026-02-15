@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../gemeni_service.dart';
+import '../widgets/post_card.dart';
 
 class PostCreationScreen extends StatefulWidget {
   const PostCreationScreen({super.key});
@@ -13,6 +16,9 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   String? _selectedLocation;
   final List<String> _uploadedFiles = [];
+  bool _isEnhancing = false;
+  bool _isCategorizing = false;
+  List<PostTag> _generatedTags = [];
 
   @override
   void dispose() {
@@ -120,39 +126,93 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                       fillColor: Colors.white,
                     ),
                   ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: Colors.grey, width: 0.5),
+                  InkWell(
+                    onTap: _isEnhancing ? null : _enhanceDescription,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Colors.grey, width: 0.5),
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'AI ENHANCE DESCRIPTION',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.3,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _isEnhancing
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.grey[600]!,
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.auto_awesome,
+                                  size: 16,
+                                  color: Colors.grey[600],
+                                ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _isEnhancing ? 'ENHANCING...' : 'AI ENHANCE DESCRIPTION',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.3,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+
+            // Generated Tags Display
+            if (_generatedTags.isNotEmpty) ...[
+              const Text(
+                'AI GENERATED CATEGORIES',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _generatedTags
+                    .map((tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tag.color,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            tag.label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 16),
 
             // Add Location Option
             _buildOptionRow(
@@ -179,7 +239,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _sharePost,
+                onPressed: _isCategorizing ? null : _sharePost,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
@@ -187,14 +247,38 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  disabledBackgroundColor: Colors.grey[400],
                 ),
-                child: const Text(
-                  'Share',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isCategorizing
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Categorizing...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Text(
+                        'Share',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -239,6 +323,168 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _enhanceDescription() async {
+    final currentDescription = _descriptionController.text.trim();
+    
+    if (currentDescription.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a description first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isEnhancing = true;
+    });
+
+    try {
+      final prompt = '''
+You are helping to enhance a community post description.
+Original description: $currentDescription
+
+Please enhance this description by:
+- Making it more clear and engaging
+- Keeping the original meaning and intent
+- Maintaining a friendly, community-focused tone
+- Keeping it concise (similar length to the original)
+- Not adding fake information
+
+Return only the enhanced description text, nothing else.''';
+
+      final enhancedText = await GeminiService.generate(prompt);
+      
+      if (mounted) {
+        _descriptionController.text = enhancedText.trim();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Description enhanced successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to enhance description: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isEnhancing = false;
+        });
+      }
+    }
+  }
+
+  /// TODO: Replace with actual database call to fetch available categories
+  /// Example: await CategoryService.getAvailableCategories()
+  Future<List<Map<String, dynamic>>> _getAvailableCategories() async {
+    // Simulating database fetch - replace this entire method with your database call
+    return [
+      {'name': 'Events', 'description': 'for announcements, gatherings, community events'},
+      {'name': 'Damaged Infrastructure', 'description': 'for broken facilities, maintenance issues'},
+      {'name': 'Pollution', 'description': 'for environmental contamination, waste issues'},
+      {'name': 'Wildlife', 'description': 'for animal-related posts'},
+      {'name': 'Community Action', 'description': 'for volunteer activities, group initiatives'},
+      {'name': 'Sustainability Tips', 'description': 'for advice, eco-friendly practices'},
+      {'name': 'Recycling', 'description': 'for waste management, recycling programs'},
+      {'name': 'Green Spaces', 'description': 'for parks, gardens, nature areas'},
+      {'name': 'Climate', 'description': 'for weather, climate change topics'},
+      {'name': 'Transportation', 'description': 'for mobility, public transit issues'},
+    ];
+  }
+
+  /// TODO: Replace with actual database call to save new category
+  /// Example: await CategoryService.addCategory(categoryName, color)
+  Future<void> _saveNewCategoryToDatabase(String categoryName, String colorHex) async {
+    // Simulating database save - replace with your actual database call
+    debugPrint('TODO: Save to database - Category: $categoryName, Color: $colorHex');
+    // Example implementation:
+    // await CategoryService.addCategory(categoryName, colorHex);
+  }
+
+  Future<List<PostTag>> _categorizePost(String title, String description) async {
+    try {
+      // Fetch available categories from database (or use hardcoded list for now)
+      final availableCategories = await _getAvailableCategories();
+      
+      // Build the category list dynamically for the AI prompt
+      final categoryList = availableCategories
+          .map((cat) => '- ${cat['name']} (${cat['description']})')
+          .join('\n');
+      
+      final prompt = '''
+You are an AI that categorizes community posts.
+
+Post Title: $title
+Post Description: $description
+
+Analyze this post and assign 1-3 relevant categories from the following list, OR create new ones if none fit:
+$categoryList
+
+Return ONLY a JSON array of categories with colors in this exact format:
+[{"label": "Category Name", "color": "#RRGGBB", "isNew": false}, ...]
+
+IMPORTANT: Set "isNew": true ONLY if you created a category that's NOT in the list above.
+
+Choose appropriate colors:
+- Green (#4CAF50) for environmental/positive topics
+- Orange (#FF9800) for warnings/issues
+- Blue (#2196F3) for events/info
+- Red (#F44336) for urgent/damaged items
+- Purple (#9C27B0) for community activities
+- Teal (#009688) for sustainability
+
+Example output:
+[{"label": "Damaged Infrastructure", "color": "#F44336", "isNew": false}, {"label": "Beach Cleanup", "color": "#2196F3", "isNew": true}]
+''';
+
+      final response = await GeminiService.generate(prompt);
+      
+      // Extract JSON from the response
+      String jsonString = response.trim();
+      // Remove markdown code blocks if present
+      jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
+      
+      final List<dynamic> categories = jsonDecode(jsonString);
+      
+      // Process categories and save new ones to database
+      final List<PostTag> tags = [];
+      for (var cat in categories) {
+        final colorHex = cat['color'].toString().replaceAll('#', '');
+        final isNew = cat['isNew'] ?? false;
+        
+        tags.add(PostTag(
+          label: cat['label'],
+          color: Color(int.parse('FF$colorHex', radix: 16)),
+        ));
+        
+        // Save new category to database
+        if (isNew) {
+          await _saveNewCategoryToDatabase(cat['label'], colorHex);
+        }
+      }
+      
+      return tags;
+    } catch (e) {
+      debugPrint('Error categorizing post: $e');
+      // Return default category on error
+      return [
+        const PostTag(
+          label: 'Community',
+          color: Color(0xFF4CAF50),
+        ),
+      ];
+    }
   }
 
   void _showLocationPicker(BuildContext context) {
@@ -327,7 +573,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
     );
   }
 
-  void _sharePost() {
+  Future<void> _sharePost() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -348,17 +594,54 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
       return;
     }
 
+    // AI Categorization
+    setState(() {
+      _isCategorizing = true;
+    });
+
+    try {
+      final tags = await _categorizePost(
+        _titleController.text.trim(),
+        _descriptionController.text.trim(),
+      );
+      
+      if (mounted) {
+        setState(() {
+          _generatedTags = tags;
+          _isCategorizing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCategorizing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Categorization failed: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    }
+
 
 
     // Use values to suppress unused warning
     debugPrint('Location: $_selectedLocation');
     debugPrint('Files: $_uploadedFiles');
+    debugPrint('Generated Tags: ${_generatedTags.map((t) => t.label).join(", ")}');
 
-    // TODO: Implement actual post sharing logic
+    // TODO: Implement actual post sharing logic with tags
+    // The _generatedTags should be sent to your backend/database
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Post shared successfully!'),
+      SnackBar(
+        content: Text(
+          'Post shared with categories: ${_generatedTags.map((t) => t.label).join(", ")}',
+        ),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
       ),
     );
 
