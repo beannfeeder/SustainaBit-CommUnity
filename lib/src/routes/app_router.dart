@@ -9,7 +9,7 @@ import '../screens/welcome_registration_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/post_creation_screen.dart';
 import '../screens/post_detail_screen.dart';
-
+import '../screens/admin_assign_zone_screen.dart';
 
 /// Central routing configuration for the app
 /// Uses go_router for declarative routing with deep linking support
@@ -60,9 +60,16 @@ class AppRouter {
         builder: (context, state) => const SearchScreen(),
       ),
       GoRoute(
-        path: '/post-creation',
-        name: 'post-creation',
-        builder: (context, state) => const PostCreationScreen(),
+        path: '/post-creation', // 或者你的路径名
+        builder: (context, state) {
+          // 这一行非常关键：它把 URL 里的 ?user_location=xxx 提取出来
+          // 这样 PostCreationScreen 里的 state.uri.queryParameters 才有值
+          return const PostCreationScreen(); 
+        },
+      ),
+      GoRoute(
+        path: '/admin-zone',
+        builder: (context, state) => const AdminAssignZoneScreen(),
       ),
     ],
     errorBuilder: (context, state) => const ErrorScreen(),

@@ -1,26 +1,79 @@
 {
   "project_info": {
-    "project_number": "288506954328",
-    "project_id": "sustainabit-community",
-    "storage_bucket": "sustainabit-community.firebasestorage.app"
+    "project_number": "243769216237",
+    "project_id": "sustainabit-c2211",
+    "storage_bucket": "sustainabit-c2211.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:288506954328:android:37aa28114b50e1c29d402d",
+        "mobilesdk_app_id": "1:243769216237:android:25ffc1cec0c54b42bc50e4",
         "android_client_info": {
           "package_name": "com.sustainabit.community"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "243769216237-q76oda54iq2s7a8efkit4rsom85iej51.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDF0wB6-Slu-gtuYP8jMm9Cgd2vLdTFLTM"
+          "current_key": "AIzaSyDiGMbJAHn9l24P53uU98-7rox5WURd6xI"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "243769216237-q76oda54iq2s7a8efkit4rsom85iej51.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "243769216237-ghg627ibato36q5qqgv2qrl452vih34n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sustainabit.community"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:243769216237:android:7a5247cfbadafae2bc50e4",
+        "android_client_info": {
+          "package_name": "com.sustainabit.sustainabit_community"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "243769216237-q76oda54iq2s7a8efkit4rsom85iej51.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiGMbJAHn9l24P53uU98-7rox5WURd6xI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "243769216237-q76oda54iq2s7a8efkit4rsom85iej51.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "243769216237-ghg627ibato36q5qqgv2qrl452vih34n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sustainabit.community"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,4 +1,4 @@
-# SustainaBit-CommUnity
+# SustainaBit-CommUnity 
 Kitahack 2026 SustainaBit
 
 A Flutter application for sustainable living community built with a clean, scalable architecture focused on reusability and maintainability.
