@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class WelcomeRegistrationScreen extends StatefulWidget {
   const WelcomeRegistrationScreen({super.key});
@@ -13,8 +15,6 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
   GoogleMapController? _mapController;
   final TextEditingController _searchController = TextEditingController(text: "");
   Set<Marker> _markers = {};
-
-  final String _googleApiKey = "AIzaSyANJht0xA4ES_dETC14bC3L9yJuYjiHkuE"; 
 
   Future<void> _searchAndMoveMap() async {
     final query = _searchController.text.toLowerCase();
@@ -66,11 +66,11 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blue),
               ),
               const SizedBox(height: 40),
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Nice to meet you, Joe!",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  "Nice to meet you, ${context.watch<AuthProvider>().firebaseUser?.displayName ?? 'there'}!",
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 8),

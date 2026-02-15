@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -61,9 +63,11 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              // --- 修改这里：执行登出跳转 ---
-              context.go('/registration'); // 返回注册登录页
+            onTap: () async {
+              await context.read<AuthProvider>().signOut();
+              if (context.mounted) {
+                context.go('/registration');
+              }
             },
           ),
         ],

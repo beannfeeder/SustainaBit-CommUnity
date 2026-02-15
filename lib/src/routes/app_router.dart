@@ -10,25 +10,25 @@ import '../screens/search_screen.dart';
 import '../screens/post_creation_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/admin_assign_zone_screen.dart';
+import '../screens/mgmt_dashboard.dart';
+import '../screens/issue_page.dart';
 
 /// Central routing configuration for the app
 /// Uses go_router for declarative routing with deep linking support
 class AppRouter {
   static final router = GoRouter(
-    initialLocation: '/registration',
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',
         name: 'splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      // --- 2. 添加注册页面路由 ---
       GoRoute(
         path: '/registration',
         name: 'registration',
         builder: (context, state) => const RegistrationScreen(),
       ),
-      // --- 3. 添加社区选择页面路由 ---
       GoRoute(
         path: '/welcome-registration',
         name: 'welcome-registration',
@@ -60,16 +60,25 @@ class AppRouter {
         builder: (context, state) => const SearchScreen(),
       ),
       GoRoute(
-        path: '/post-creation', // 或者你的路径名
+        path: '/post-creation',
         builder: (context, state) {
-          // 这一行非常关键：它把 URL 里的 ?user_location=xxx 提取出来
-          // 这样 PostCreationScreen 里的 state.uri.queryParameters 才有值
           return const PostCreationScreen(); 
         },
       ),
       GoRoute(
         path: '/admin-zone',
         builder: (context, state) => const AdminAssignZoneScreen(),
+      ),
+      // Management routes
+      GoRoute(
+        path: '/mgmt-dashboard',
+        name: 'mgmt-dashboard',
+        builder: (context, state) => const MgmtDashboard(),
+      ),
+      GoRoute(
+        path: '/issues',
+        name: 'issues',
+        builder: (context, state) => const IssuePage(),
       ),
     ],
     errorBuilder: (context, state) => const ErrorScreen(),

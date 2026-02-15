@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       appBar: AppTopBar(
         onMenuPressed: () {
-          // TODO: Open drawer/menu
+          context.push('/settings');
         },
         onSearchPressed: () {
           context.push('/search');
@@ -31,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
           // TODO: Navigate to notifications
         },
         onProfilePressed: () {
-          // TODO: Navigate to profile
           context.push('/profile');
         },
       ),
@@ -43,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 _selectedTab = index;
               });
-              // TODO: Load different content based on tab
             },
           ),
           Expanded(
@@ -65,13 +63,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Color(0xFFFFD54F),
                       ),
                     ],
-                    imageUrl: 'placeholder', // Mock image
+                    imageUrl: 'placeholder',
                     likes: 9,
                     views: '653,234 Views',
                     comments: '56 comments',
                     duplicatePostLabel: 'Duplicated Post',
                     onTap: () {
-                      // Navigate to post detail screen
                       context.push('/post-detail');
                     },
                     onLike: () {
@@ -93,7 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _selectedNavIndex = index;
           });
-          // TODO: Navigate based on index
           if (index == 0) {
             // Already on home
           } else if (index == 2) {

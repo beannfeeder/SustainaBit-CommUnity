@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function: check if the requesting user has a specific role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isManagement() {
+      return getUserRole() == 'management';
+    }
+
+    // Users collection:
+    // - Any authenticated user can read their own document
+    // - Only the user themselves can read their own data
+    // - Role field can only be changed manually in Firebase Console (not from client)
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.role == 'user';
+      // Users can update their own profile but NOT change their role
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role;
+    }
+
+    // Zones collection:
+    // - Only management users can create/update zones
+    // - All authenticated users can read zones
+    match /zones/{zoneId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && isManagement();
+    }
+
+    // Posts collection:
+    // - All authenticated users can read posts
+    // - All authenticated users can create posts
+    // - Only the post author or management can update/delete
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+                            && (resource.data.authorId == request.auth.uid || isManagement());
+    }
+  }
+}

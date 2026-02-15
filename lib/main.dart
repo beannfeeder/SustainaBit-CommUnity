@@ -4,30 +4,24 @@ import 'package:firebase_core/firebase_core.dart';
 import 'src/config/app_theme.dart';
 import 'src/routes/app_router.dart';
 import 'src/services/storage_service.dart';
-import 'firebase_options.dart'; // ✅ 已经取消注释，引入你刚才手写的配置文件
+import 'src/providers/auth_provider.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
-  // 必须保留：确保 Flutter 引擎初始化
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 必须保留：初始化你的本地存储服务
   await StorageService.init();
 
-  // --- Firebase 真实初始化区域 ---
   try {
-      // ✅ 已经取消注释，调用你配置的 apiKey 和 projectId
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform, 
       );
   } catch (e) {
       debugPrint("Firebase initialization failed: $e");
-      // 如果初始化失败，显示红色的错误提示页面
       runApp(InitializationErrorApp(error: e.toString()));
-      return; // 阻止程序继续往下走
+      return;
   }
-  // -------------------------------------------
 
-  // 初始化成功后，正常启动 App
   runApp(const MyApp());
 }
 
@@ -77,18 +71,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<String>.value(value: "Init"),
-      ],
-      child: MaterialApp.router(
-        title: 'SustainaBit CommUnity',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme, 
-        themeMode: ThemeMode.system,
-        // 这里是关键：确保 routerConfig 能够感知到 URL 的变化
-        routerConfig: AppRouter.router, 
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: Builder(
+        builder: (context) {
+          return MaterialApp.router(
+            title: 'SustainaBit CommUnity',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme, 
+            themeMode: ThemeMode.system,
+            routerConfig: AppRouter.router,
+          );
+        },
       ),
     );
   }

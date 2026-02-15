@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../services/cloud_function_service.dart';
 
 class AdminAssignZoneScreen extends StatefulWidget {
   const AdminAssignZoneScreen({super.key});
@@ -16,7 +18,7 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
   Set<Polygon> _polygons = {};
   Set<Marker> _markers = {};
 
-  final String _googleApiKey = "AIzaSyANJht0xA4ES_dETC14bC3L9yJuYjiHkuE";
+  // API key should be configured via environment, not hardcoded
 
   // 🛑 核心修复 1：定义一个“最后触摸时间”变量，用来做防穿透护盾
   DateTime _lastInteractionTime = DateTime.fromMillisecondsSinceEpoch(0);
@@ -88,7 +90,10 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5BB2),
         elevation: 0,
-        leading: const Icon(Icons.menu, color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () => context.push('/settings'),
+        ),
         title: Row(
           children: [
             const Icon(Icons.maps_home_work, color: Colors.white),
@@ -100,14 +105,20 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () => context.push('/search'),
+          ),
           IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {}),
-          const Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.white24,
-              child: Icon(Icons.person, color: Colors.white),
+          GestureDetector(
+            onTap: () => context.push('/profile'),
+            child: const Padding(
+              padding: EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.white24,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
             ),
           )
         ],
@@ -185,18 +196,31 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
                           ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             if (_polygonPoints.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Please draw a zone on the map first!'))
                               );
                               return;
                             }
-                            String boundaryData = _polygonPoints.map((p) => "${p.latitude},${p.longitude}").join(";");
-                            debugPrint("✅ 区域更新成功！坐标点: $boundaryData");
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Zone Updated Successfully!'), backgroundColor: Colors.green)
-                            );
+                            final points = _polygonPoints.map((p) => {
+                              'latitude': p.latitude,
+                              'longitude': p.longitude,
+                            }).toList();
+                            try {
+                              await CloudFunctionService().updateZone(points);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Zone Updated Successfully!'), backgroundColor: Colors.green)
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update zone: $e'), backgroundColor: Colors.red)
+                                );
+                              }
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -224,6 +248,22 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
         selectedFontSize: 10,
         unselectedFontSize: 10,
         currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/mgmt-dashboard');
+              break;
+            case 1:
+              context.go('/home');
+              break;
+            case 3:
+              context.go('/issues');
+              break;
+            case 4:
+              context.go('/profile');
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.dynamic_feed), label: 'Feed'),

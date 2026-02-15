@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/issue_page.dart';
-import '../screens/mgmt_dashboard.dart';
+import 'package:go_router/go_router.dart';
 
 class ManagementBottomNav extends StatefulWidget {
   final int currentIndex;
@@ -21,7 +20,7 @@ class _ManagementBottomNavState extends State<ManagementBottomNav> {
   }
 
   void _onItemTapped(int index) {
-    if (index == _currentIndex) return; // Don't navigate to same page
+    if (index == _currentIndex) return;
     
     setState(() {
       _currentIndex = index;
@@ -29,33 +28,18 @@ class _ManagementBottomNavState extends State<ManagementBottomNav> {
 
     switch (index) {
       case 0: // Dashboard
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MgmtDashboard()),
-        );
+        context.go('/mgmt-dashboard');
         break;
       case 1: // Feed
-        _showToBeImplemented('Feed');
+        context.go('/home');
         break;
       case 2: // Issues
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const IssuePage()),
-        );
+        context.go('/issues');
         break;
       case 3: // Profile
-        _showToBeImplemented('Profile');
+        context.go('/profile');
         break;
     }
-  }
-
-  void _showToBeImplemented(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature - To Be Implemented'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   @override

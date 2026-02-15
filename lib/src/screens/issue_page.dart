@@ -1,7 +1,5 @@
-// 在 ListView.builder 中添加了 GestureDetector 实现跳转
-// 在文件末尾添加了 IssueDetailPage 类
-
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/management_bottom_nav.dart';
 
 class IssuePage extends StatefulWidget {
@@ -61,15 +59,23 @@ class _IssuePageState extends State<IssuePage> {
       backgroundColor: const Color(0xFFF7FBF7),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E5BB8),
-        leading: const Icon(Icons.menu, color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () => context.push('/settings'),
+        ),
         title: const Text("CommUnity", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        actions: const [
-          Icon(Icons.search, color: Colors.white),
-          SizedBox(width: 16),
-          Icon(Icons.notifications, color: Colors.white),
-          SizedBox(width: 16),
-          CircleAvatar(radius: 14, backgroundColor: Colors.white),
-          SizedBox(width: 16),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () => context.push('/search'),
+          ),
+          const Icon(Icons.notifications, color: Colors.white),
+          const SizedBox(width: 16),
+          GestureDetector(
+            onTap: () => context.push('/profile'),
+            child: const CircleAvatar(radius: 14, backgroundColor: Colors.white),
+          ),
+          const SizedBox(width: 16),
         ],
       ),
       body: Column(

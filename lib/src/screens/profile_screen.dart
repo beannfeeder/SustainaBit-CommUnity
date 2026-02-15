@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 
 class ProfileScreen extends StatelessWidget {
@@ -7,20 +9,20 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine if we are on a small screen to adjust layout if needed
-    // For now, assuming mobile portrait as per design.
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final authProvider = context.watch<AuthProvider>();
+    final displayName = authProvider.firebaseUser?.displayName ?? 'User';
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: colorScheme.surface, // M3 Surface
+        backgroundColor: colorScheme.surface,
         body: SafeArea(
           child: Column(
             children: [
               // 1. Header Section
-              _buildHeader(context),
+              _buildHeader(context, displayName),
 
               // 2. Tab Bar
               TabBar(
@@ -28,10 +30,10 @@ class ProfileScreen extends StatelessWidget {
                 unselectedLabelColor: colorScheme.onSurfaceVariant,
                 indicatorColor: colorScheme.primary,
                 indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent, // M3 often removes the divider or keeps it subtle
+                dividerColor: Colors.transparent,
                 tabs: const [
-                  Tab(icon: Icon(Icons.grid_view, size: 28)), // Grid icon
-                  Tab(icon: Icon(Icons.archive_outlined, size: 28)), // Box icon (using archive as proxy)
+                  Tab(icon: Icon(Icons.grid_view, size: 28)),
+                  Tab(icon: Icon(Icons.archive_outlined, size: 28)),
                 ],
               ),
               const Divider(height: 1),
@@ -50,14 +52,14 @@ class ProfileScreen extends StatelessWidget {
         ),
         // 4. Bottom Navigation Bar
         bottomNavigationBar: NavigationBar(
-          selectedIndex: 2, // Profile is the 3rd item (index 2)
+          selectedIndex: 2,
           onDestinationSelected: (index) {
             switch (index) {
               case 0:
                 context.go('/home');
                 break;
               case 1:
-                // TODO: Navigate to Create/Add screen
+                context.push('/post-creation');
                 break;
               case 2:
                 // current screen
@@ -71,7 +73,7 @@ class ProfileScreen extends StatelessWidget {
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(Icons.add_circle_outline, size: 30), // Prominent add button
+              icon: Icon(Icons.add_circle_outline, size: 30),
               selectedIcon: Icon(Icons.add_circle, size: 30),
               label: 'Create',
             ),
@@ -86,24 +88,36 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, String displayName) {
     final theme = Theme.of(context);
     
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24),
-      color: theme.colorScheme.surfaceContainerLow, // Slight background tint if defined, else surface
+      color: theme.colorScheme.surfaceContainerLow,
       child: Column(
         children: [
+          // Settings icon at top right
+          Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  context.push('/settings');
+                },
+              ),
+            ),
+          ),
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              // Avatar
               CircleAvatar(
                 radius: 60,
                 backgroundColor: theme.colorScheme.primaryContainer,
                 child: CircleAvatar(
                   radius: 56,
-                  backgroundColor: theme.colorScheme.primary, // Use primary color for background
+                  backgroundColor: theme.colorScheme.primary,
                   child: const Icon(
                     Icons.person,
                     size: 64,
@@ -111,10 +125,9 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // Edit Icon
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[300], // As per design
+                  color: Colors.grey[300],
                   shape: BoxShape.circle,
                   border: Border.all(color: theme.colorScheme.surface, width: 2),
                 ),
@@ -130,7 +143,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Hello, Joe!',
+            'Hello, $displayName!',
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,

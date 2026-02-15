@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../models/user.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,13 +15,35 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
+    _checkAuthAndNavigate();
   }
 
-  Future<void> _navigateToHome() async {
+  Future<void> _checkAuthAndNavigate() async {
+    // Wait for the splash to display briefly
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      context.go('/home');
+    if (!mounted) return;
+
+    final authProvider = context.read<AuthProvider>();
+
+    // Wait for the auth state to finish loading
+    if (authProvider.isLoading) {
+      await Future.doWhile(() async {
+        await Future.delayed(const Duration(milliseconds: 100));
+        return authProvider.isLoading && mounted;
+      });
+    }
+
+    if (!mounted) return;
+
+    if (authProvider.isAuthenticated) {
+      // Route based on user role
+      if (authProvider.userRole == UserRole.management) {
+        context.go('/mgmt-dashboard');
+      } else {
+        context.go('/home');
+      }
+    } else {
+      context.go('/registration');
     }
   }
 

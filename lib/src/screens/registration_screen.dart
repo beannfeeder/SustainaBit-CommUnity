@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../models/user.dart';
 
 class RegistrationScreen extends StatelessWidget {
   const RegistrationScreen({super.key});
@@ -15,7 +17,6 @@ class RegistrationScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 暂时用文字代替 Logo
               const Text(
                 "CommUnity",
                 style: TextStyle(
@@ -26,16 +27,20 @@ class RegistrationScreen extends StatelessWidget {
               ),
               const SizedBox(height: 100),
 
-              // 唯一的 Google 登录按钮
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      final userCredential = await AuthService().signInWithGoogle();
-                      if (userCredential != null && context.mounted) {
-                        context.go('/welcome-registration');
+                      final authProvider = context.read<AuthProvider>();
+                      final role = await authProvider.signInWithGoogle();
+                      if (role != null && context.mounted) {
+                        if (role == UserRole.management) {
+                          context.go('/mgmt-dashboard');
+                        } else {
+                          context.go('/welcome-registration');
+                        }
                       }
                     } catch (e) {
                       if (context.mounted) {
