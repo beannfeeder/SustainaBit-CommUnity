@@ -14,11 +14,50 @@ class PostCreationScreen extends StatefulWidget {
 class _PostCreationScreenState extends State<PostCreationScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  
+  // 负责记住你的地点
+  String? _communityLocation;
   String? _selectedLocation;
+  
   final List<String> _uploadedFiles = [];
   bool _isEnhancing = false;
   bool _isCategorizing = false;
   List<PostTag> _generatedTags = [];
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // 页面加载后强行解析浏览器真实的 URL
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      String? finalLocation;
+      
+      try {
+        finalLocation = GoRouterState.of(context).uri.queryParameters['user_location'];
+      } catch (e) {
+        debugPrint("GoRouter 解析 URL 失败...");
+      }
+
+      // 如果拿不到，暴力读取浏览器的 /#/ 网址
+      if (finalLocation == null || finalLocation.isEmpty) {
+        final fragment = Uri.base.fragment; 
+        if (fragment.contains('user_location=')) {
+          final dummyUri = Uri.parse('http://dummy.com$fragment');
+          finalLocation = dummyUri.queryParameters['user_location'];
+        }
+      }
+
+      // 只要拿到数据，就塞进页面里
+      if (finalLocation != null && finalLocation.isNotEmpty) {
+        setState(() {
+          // 注意这里的 finalLocation! (加了感叹号) 解决了报错
+          _communityLocation = Uri.decodeComponent(finalLocation ?? '').replaceAll('+', ' ');
+          _selectedLocation = _communityLocation;; 
+        });
+        debugPrint("成功提取地点: $_communityLocation");
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -53,7 +92,6 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
-            // Title Field
             const Text(
               'TITLE',
               style: TextStyle(
@@ -67,10 +105,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: Colors.black, fontSize: 16),
               decoration: InputDecoration(
                 hintText: 'Title goes here...',
                 hintStyle: TextStyle(color: Colors.grey[500]),
@@ -82,17 +117,13 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFF4A90E2)),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
                 fillColor: Colors.white,
               ),
             ),
             const SizedBox(height: 24),
 
-            // Description Field
             const Text(
               'DESCRIPTION',
               style: TextStyle(
@@ -112,10 +143,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 children: [
                   TextField(
                     controller: _descriptionController,
-                    style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.black, fontSize: 16),
                     maxLines: 8,
                     decoration: InputDecoration(
                       hintText: 'Describe your post...',
@@ -216,12 +244,12 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
 
             // Add Location Option
             _buildOptionRow(
-              icon: Icons.location_on_outlined,
-              title: 'Add location',
-              onTap: () {
-                _showLocationPicker(context);
-              },
-            ),
+                  icon: Icons.location_on_outlined,
+                  title: _selectedLocation ?? 'Add location', 
+                  onTap: () {
+                    _showLocationPicker(context);
+                  },
+                ),
             const SizedBox(height: 16),
 
             // Upload Option
@@ -299,26 +327,10 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: Colors.grey[600],
-            ),
+            Icon(icon, size: 20, color: Colors.grey[600]),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey[400],
-            ),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.black87))),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -490,6 +502,9 @@ Example output:
   void _showLocationPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -497,28 +512,29 @@ Example output:
           children: [
             const Text(
               'Select Location',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 12),
+            if (_communityLocation != null)
+              Text(
+                'Your post will be visible to members in $_communityLocation',
+                style: TextStyle(color: Colors.blue[700], fontSize: 13),
+              ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.my_location),
-              title: const Text('Current Location'),
+              leading: const Icon(Icons.home_work_outlined),
+              title: Text('My Community (${_communityLocation ?? "Not Set"})'),
               onTap: () {
-                setState(() {
-                  _selectedLocation = 'Current Location';
-                });
+                setState(() => _selectedLocation = _communityLocation);
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.search),
-              title: const Text('Search Location'),
+              title: const Text('Change Location'),
               onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement location search
+                Navigator.pop(context); 
+                context.push('/welcome-registration'); 
               },
             ),
           ],
@@ -535,38 +551,11 @@ Example output:
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Upload Files',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const Text('Upload Files', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement camera
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement gallery picker
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.attach_file),
-              title: const Text('Attach File'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement file picker
-              },
-            ),
+            ListTile(leading: const Icon(Icons.camera_alt), title: const Text('Take Photo'), onTap: () => Navigator.pop(context)),
+            ListTile(leading: const Icon(Icons.photo_library), title: const Text('Choose from Gallery'), onTap: () => Navigator.pop(context)),
+            ListTile(leading: const Icon(Icons.attach_file), title: const Text('Attach File'), onTap: () => Navigator.pop(context)),
           ],
         ),
       ),
@@ -575,22 +564,12 @@ Example output:
 
   Future<void> _sharePost() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a title for your post'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a title for your post'), backgroundColor: Colors.red));
       return;
     }
 
     if (_descriptionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a description for your post'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a description for your post'), backgroundColor: Colors.red));
       return;
     }
 
