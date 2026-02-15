@@ -25,18 +25,23 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final authProvider = context.read<AuthProvider>();
 
-    // Wait for the auth state to finish loading
+    // If still loading, wait for the auth provider to finish
     if (authProvider.isLoading) {
-      await Future.doWhile(() async {
-        await Future.delayed(const Duration(milliseconds: 100));
-        return authProvider.isLoading && mounted;
-      });
+      void listener() {
+        if (!authProvider.isLoading && mounted) {
+          authProvider.removeListener(listener);
+          _navigateByRole(authProvider);
+        }
+      }
+      authProvider.addListener(listener);
+    } else {
+      _navigateByRole(authProvider);
     }
+  }
 
+  void _navigateByRole(AuthProvider authProvider) {
     if (!mounted) return;
-
     if (authProvider.isAuthenticated) {
-      // Route based on user role
       if (authProvider.userRole == UserRole.management) {
         context.go('/mgmt-dashboard');
       } else {

@@ -18,9 +18,6 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
   Set<Polygon> _polygons = {};
   Set<Marker> _markers = {};
 
-  // API key should be configured via environment, not hardcoded
-
-  // 🛑 核心修复 1：定义一个“最后触摸时间”变量，用来做防穿透护盾
   DateTime _lastInteractionTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // 1. 地图点击事件：记录坐标并画线

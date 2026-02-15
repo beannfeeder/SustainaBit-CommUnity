@@ -71,7 +71,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Navigator.pop(context);
         },
         onSearchPressed: () {
-          // TODO: Navigate to search
+          context.push('/search');
         },
         onNotificationPressed: () {
           // TODO: Navigate to notifications

@@ -69,7 +69,7 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Nice to meet you, ${context.watch<AuthProvider>().firebaseUser?.displayName ?? 'there'}!",
+                  "Nice to meet you, ${context.read<AuthProvider>().firebaseUser?.displayName ?? 'there'}!",
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
