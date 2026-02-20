@@ -1,139 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/content_tab_toggle.dart';
 
-
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  int _selectedTab = 0; // 0 for My Posts, 1 for My Issues
+
+  @override
   Widget build(BuildContext context) {
-    // Determine if we are on a small screen to adjust layout if needed
-    // For now, assuming mobile portrait as per design.
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    return Column(
+      children: [
+        // Profile header
+        _buildProfileHeader(context),
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: colorScheme.surface, // M3 Surface
-        body: SafeArea(
-          child: Column(
-            children: [
-              // 1. Header Section
-              _buildHeader(context),
-
-              // 2. Tab Bar
-              TabBar(
-                labelColor: colorScheme.primary,
-                unselectedLabelColor: colorScheme.onSurfaceVariant,
-                indicatorColor: colorScheme.primary,
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent, // M3 often removes the divider or keeps it subtle
-                tabs: const [
-                  Tab(icon: Icon(Icons.grid_view, size: 28)), // Grid icon
-                  Tab(icon: Icon(Icons.archive_outlined, size: 28)), // Box icon (using archive as proxy)
-                ],
-              ),
-              const Divider(height: 1),
-
-              // 3. Tab Content
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildCommunitySharingTab(context),
-                    _buildIssuesTab(context),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 4. Bottom Navigation Bar
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: 2, // Profile is the 3rd item (index 2)
-          onDestinationSelected: (index) {
-            switch (index) {
-              case 0:
-                context.go('/home');
-                break;
-              case 1:
-                // TODO: Navigate to Create/Add screen
-                break;
-              case 2:
-                // current screen
-                break;
-            }
+        // Tab toggle
+        ContentTabToggle(
+          selectedTab: _selectedTab,
+          tabs: const ['My Posts', 'My Issues'],
+          onTabChanged: (index) {
+            setState(() {
+              _selectedTab = index;
+            });
           },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.add_circle_outline, size: 30), // Prominent add button
-              selectedIcon: Icon(Icons.add_circle, size: 30),
-              label: 'Create',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
         ),
-      ),
+
+        // Tab content
+        Expanded(
+          child: _selectedTab == 0
+              ? _buildMyPostsTab(context)
+              : _buildMyIssuesTab(context),
+        ),
+      ],
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    
+  Widget _buildProfileHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      color: theme.colorScheme.surfaceContainerLow, // Slight background tint if defined, else surface
-      child: Column(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      child: Row(
         children: [
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              // Avatar
-              CircleAvatar(
-                radius: 60,
-                backgroundColor: theme.colorScheme.primaryContainer,
-                child: CircleAvatar(
-                  radius: 56,
-                  backgroundColor: theme.colorScheme.primary, // Use primary color for background
-                  child: const Icon(
-                    Icons.person,
-                    size: 64,
-                    color: Colors.white,
-                  ),
-                ),
+              const CircleAvatar(
+                radius: 40,
+                backgroundColor: Color(0xFF4A90E2),
+                child: Icon(Icons.person, size: 44, color: Colors.white),
               ),
-              // Edit Icon
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[300], // As per design
-                  shape: BoxShape.circle,
-                  border: Border.all(color: theme.colorScheme.surface, width: 2),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.edit, size: 20, color: Colors.black87),
-                  onPressed: () {
-                    // Edit profile action
-                  },
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.edit, size: 14, color: Colors.black87),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Hello, Joe!',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Hello, Joe!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Jalan Jati Perkasa',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildStat('3', 'Posts'),
+                    const SizedBox(width: 20),
+                    _buildStat('3', 'Issues'),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -141,42 +102,61 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCommunitySharingTab(BuildContext context) {
-    // Helper to build a "Community Sharing" card
-    return ListView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildStat(String count, String label) {
+    return Column(
       children: [
-        _buildFeedCard(
-          context,
-          title: 'Free Herbs at Block A Garden – Take What You Need!',
-          author: 'Block A Garden',
-          timeAgo: '5 hours ago',
-          tag: 'Community Sharing',
-          tagColor: Colors.green,
-          content: 'Hi neighbours! The community herb garden at Block A is growing really well 🌱\n'
-                   'We currently have mint, pandan, and curry leaves. Feel free to take some, just don\'t uproot the plants please 😊',
+        Text(
+          count,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF4A90E2),
+          ),
         ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
 
-  Widget _buildIssuesTab(BuildContext context) {
+  Widget _buildMyPostsTab(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildFeedCard(
+            context,
+            title: 'Free Herbs at Block A Garden – Take What You Need!',
+            author: 'Block A Garden',
+            timeAgo: '5 hours ago',
+            tag: 'Community Sharing',
+            tagColor: Colors.green,
+            content:
+                'Hi neighbours! The community herb garden at Block A is growing really well 🌱\n'
+                'We currently have mint, pandan, and curry leaves. Feel free to take some, just don\'t uproot the plants please 😊',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyIssuesTab(BuildContext context) {
     return Column(
       children: [
-        // Filter Dropdown
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: DropdownButtonFormField<String>(
             decoration: InputDecoration(
               labelText: 'Filter by...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
             ),
             items: const [],
             onChanged: (value) {},
           ),
         ),
-        // List of Issues
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -186,10 +166,8 @@ class ProfileScreen extends StatelessWidget {
                 title: 'Drainage blocked at Jalan 6/7, Persiaran Tujuan',
                 date: 'First reported 25/12/2025',
                 status: 'Completed',
-                statusColor: Colors.green,
-                onTap: () {
-                   // Navigate to issue details
-                },
+                statusColor: const Color(0xFF4CAF50),
+                onTap: () {},
               ),
               const SizedBox(height: 12),
               _buildIssueCard(
@@ -198,9 +176,7 @@ class ProfileScreen extends StatelessWidget {
                 date: 'First reported 2/1/2026',
                 status: 'In Progress',
                 statusColor: Colors.amber,
-                onTap: () {
-                   // Navigate to issue details
-                },
+                onTap: () {},
               ),
               const SizedBox(height: 12),
               _buildIssueCard(
@@ -209,9 +185,7 @@ class ProfileScreen extends StatelessWidget {
                 date: 'First reported 1/2/2026',
                 status: 'In Progress',
                 statusColor: Colors.red,
-                onTap: () {
-                   // Navigate to issue details
-                },
+                onTap: () {},
               ),
               const SizedBox(height: 16),
             ],
@@ -230,17 +204,15 @@ class ProfileScreen extends StatelessWidget {
     required Color tagColor,
     required String content,
   }) {
-    final theme = Theme.of(context);
     return Card(
       elevation: 0,
-      color: theme.colorScheme.surfaceContainer, // M3 Card color
+      color: Colors.grey[100],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title
             Row(
               children: [
                 const Icon(Icons.spa, color: Colors.green, size: 20),
@@ -248,21 +220,20 @@ class ProfileScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 15,
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            // Metadata
             Text(
               '$author  $timeAgo',
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             const SizedBox(height: 12),
-            // Tag
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
@@ -271,15 +242,11 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Text(
                 tag,
-                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
             const SizedBox(height: 12),
-            // Content
-            Text(
-              content,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(content, style: const TextStyle(fontSize: 14)),
           ],
         ),
       ),
@@ -294,11 +261,10 @@ class ProfileScreen extends StatelessWidget {
     required Color statusColor,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
     return Card(
       elevation: 0,
-      clipBehavior: Clip.antiAlias, // Needed for InkWell ripple to respect border radius
-      color: theme.colorScheme.surfaceContainer,
+      clipBehavior: Clip.antiAlias,
+      color: Colors.grey[100],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -313,30 +279,32 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                         color: Colors.brown[700], // Example color from screenshot
-                         fontWeight: FontWeight.w600,
+                      style: TextStyle(
+                        color: Colors.brown[700],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       date,
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                 decoration: BoxDecoration(
-                   color: statusColor,
-                   borderRadius: BorderRadius.circular(20),
-                 ),
-                 child: Text(
-                   status,
-                   style: theme.textTheme.labelSmall?.copyWith(color: Colors.white),
-                 ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  status,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ),
             ],
           ),
