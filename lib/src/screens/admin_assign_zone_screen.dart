@@ -12,9 +12,9 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
   GoogleMapController? _mapController;
   final TextEditingController _searchController = TextEditingController();
   
-  List<LatLng> _polygonPoints = [];
+  final List<LatLng> _polygonPoints = [];
   Set<Polygon> _polygons = {};
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
 
   final String _googleApiKey = "AIzaSyANJht0xA4ES_dETC14bC3L9yJuYjiHkuE";
 

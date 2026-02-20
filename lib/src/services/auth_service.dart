@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
+import 'local_storage_service.dart'; // NEW
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -19,10 +20,11 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      UserCredential credential;
       if (kIsWeb) {
         // For web, use signInWithPopup
         GoogleAuthProvider authProvider = GoogleAuthProvider();
-        return await _auth.signInWithPopup(authProvider);
+        credential = await _auth.signInWithPopup(authProvider);
       } else {
         // For Android and iOS
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -34,13 +36,27 @@ class AuthService {
 
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-        final OAuthCredential credential = GoogleAuthProvider.credential(
+        final OAuthCredential oAuthCredential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        return await _auth.signInWithCredential(credential);
+        credential = await _auth.signInWithCredential(oAuthCredential);
       }
+
+      // ── Save Local Login State ──
+      if (credential.user != null) {
+        final storage = LocalStorageService();
+        await storage.setIsLoggedIn(true);
+        await storage.setUserId(credential.user!.uid);
+        // If it's a new login, default to 'user' role locally.
+        // In a real app, you would fetch their actual role from Firestore here.
+        if (storage.userRole.isEmpty) {
+          await storage.setUserRole('user');
+        }
+      }
+
+      return credential;
     } catch (e) {
       debugPrint("Error signing in with Google: $e");
       rethrow;
@@ -52,6 +68,8 @@ class AuthService {
     try {
       await _googleSignIn.signOut();
       await _auth.signOut();
+      // Clear local auth cache
+      await LocalStorageService().clearAuthData();
     } catch (e) {
       debugPrint("Error signing out: $e");
       rethrow;

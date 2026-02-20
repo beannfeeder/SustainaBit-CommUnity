@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/content_tab_toggle.dart';
+import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -81,6 +84,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Colors.black87,
                   ),
                 ),
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) => Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: auth.userRole == 'management' ? Colors.amber : Colors.blueGrey,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          auth.userRole.toUpperCase(),
+                          style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Debug switch
+                      InkWell(
+                        onTap: () {
+                          final newRole = auth.userRole == 'user' ? 'management' : 'user';
+                          auth.setRole(newRole);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Role switched to $newRole (Debug)')),
+                          );
+                        },
+                        child: const Icon(Icons.swap_horiz, size: 16, color: Colors.grey),
+                      )
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Jalan Jati Perkasa',
@@ -96,6 +128,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              // Ask for confirmation
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Sign Out'),
+                  content: const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true && context.mounted) {
+                try {
+                  await AuthService().signOut();
+                  if (context.mounted) {
+                    await context.read<AuthProvider>().logout();
+                    context.go('/registration');
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to sign out: $e')),
+                    );
+                  }
+                }
+              }
+            },
           ),
         ],
       ),

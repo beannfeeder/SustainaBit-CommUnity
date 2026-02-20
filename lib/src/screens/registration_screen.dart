@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class RegistrationScreen extends StatelessWidget {
   const RegistrationScreen({super.key});
@@ -35,7 +37,13 @@ class RegistrationScreen extends StatelessWidget {
                     try {
                       final userCredential = await AuthService().signInWithGoogle();
                       if (userCredential != null && context.mounted) {
-                        context.go('/welcome-registration');
+                        // Notify provider that user is logged in
+                        await context.read<AuthProvider>().login(
+                          userCredential.user!.uid,
+                        );
+                        if (context.mounted) {
+                          context.go('/welcome-registration');
+                        }
                       }
                     } catch (e) {
                       if (context.mounted) {

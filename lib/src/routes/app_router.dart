@@ -11,12 +11,31 @@ import '../screens/post_creation_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/admin_assign_zone_screen.dart';
 import '../widgets/main_shell.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 /// Central routing configuration for the app
 /// Uses go_router for declarative routing with deep linking support
 class AppRouter {
   static final router = GoRouter(
     initialLocation: '/registration',
+    redirect: (context, state) {
+      final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
+      final path = state.uri.path;
+
+      // These routes are public / unauthenticated
+      final isAuthRoute = path == '/' ||
+          path == '/registration' ||
+          path.startsWith('/welcome-registration');
+
+      // Not logged in → always go to registration (except on auth screens)
+      if (!isLoggedIn && !isAuthRoute) return '/registration';
+
+      // Logged in → don't stay on auth screens
+      if (isLoggedIn && isAuthRoute) return '/home';
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',
@@ -55,9 +74,12 @@ class AppRouter {
 
       // ── Non-shell routes (full screen) ──
       GoRoute(
-        path: '/post-detail',
+        path: '/post-detail/:postId',
         name: 'post-detail',
-        builder: (context, state) => const PostDetailScreen(),
+        builder: (context, state) {
+          final postId = state.pathParameters['postId'] ?? '';
+          return PostDetailScreen(postId: postId);
+        },
       ),
       GoRoute(
         path: '/settings',
