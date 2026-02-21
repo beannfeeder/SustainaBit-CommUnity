@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'user_avatar.dart';
+import '../config/app_theme.dart';
 
 /// A Reddit-inspired post card that shows a vote bar, image, and stats.
 class PostCard extends StatelessWidget {
@@ -90,7 +91,9 @@ class PostCard extends StatelessWidget {
                           children: [
                             Text(username,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w600, fontSize: 13)),
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13)),
                             if (username == 'Management') ...[
                               const SizedBox(width: 4),
                               Container(
@@ -110,8 +113,8 @@ class PostCard extends StatelessWidget {
                           ],
                         ),
                         Text('$location • $timeAgo',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey[500])),
+                            style: const TextStyle(
+                                fontSize: 11, color: AppTheme.textMeta)),
                       ],
                     ),
                   ),
@@ -138,7 +141,9 @@ class PostCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Text(title,
                   style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold)),
+                      color: AppTheme.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold)),
             ),
 
             // ── Tags ────────────────────────────────────────────────────────
@@ -239,18 +244,20 @@ class PostCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: const Color(0xFFE8F0FE),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.chat_bubble_outline,
-                              size: 14, color: Colors.grey[600]),
+                          const Icon(Icons.chat_bubble_outline,
+                              size: 14, color: AppTheme.primaryBlue),
                           const SizedBox(width: 4),
                           Text('$commentCount',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[700])),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.primaryBlue,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -261,21 +268,21 @@ class PostCard extends StatelessWidget {
                   // View count
                   Row(
                     children: [
-                      Icon(Icons.visibility_outlined,
-                          size: 14, color: Colors.grey[400]),
+                      const Icon(Icons.visibility_outlined,
+                          size: 14, color: AppTheme.textMeta),
                       const SizedBox(width: 4),
                       Text('$viewCount',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[500])),
+                          style: const TextStyle(
+                              fontSize: 12, color: AppTheme.textMeta)),
                     ],
                   ),
 
                   if (duplicatePostLabel != null) ...[
                     const Spacer(),
                     Text(duplicatePostLabel!,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[500],
+                            color: AppTheme.textMeta,
                             decoration: TextDecoration.underline)),
                   ],
                 ],

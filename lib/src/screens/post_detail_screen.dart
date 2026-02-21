@@ -243,7 +243,9 @@ class _PostHeader extends StatelessWidget {
                               ? post.authorName
                               : post.authorId),
                       style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14),
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14),
                     ),
                     Text(
                       '${post.location ?? 'Unknown'} • $timeAgo',
@@ -257,8 +259,10 @@ class _PostHeader extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(post.title,
-              style:
-                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Text(post.description,
               style: TextStyle(
@@ -426,8 +430,10 @@ class _CommentsList extends StatelessWidget {
             children: [
               Text(
                 'Comments (${comments.length})',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               if (comments.isEmpty)
