@@ -61,7 +61,9 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                 icon: const Icon(Icons.admin_panel_settings, color: Colors.amber),
                 tooltip: 'Admin Dashboard',
                 onPressed: () {
-                  context.push('/admin-zone');
+                  // 🌟 核心修改：使用 context.go 跳转到管理后台主页
+                  // 这将触发 MainShell 切换到底部 5 个按钮的模式
+                  context.go('/mgmt-dashboard');
                 },
               );
             }

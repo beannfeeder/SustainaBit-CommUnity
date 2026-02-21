@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/management_bottom_nav.dart';
 
 class MgmtDashboard extends StatefulWidget {
   const MgmtDashboard({super.key});
@@ -55,33 +54,10 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 核心修改：去掉了内部的 appBar 和 bottomNavigationBar
+    // 只保留了 Scaffold 的背景色和真实的内容主体 (body)
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBF7),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E5BB8),
-        leading: const Icon(Icons.menu, color: Colors.white),
-        title: const Row(
-          children: [
-            Icon(Icons.home, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text(
-              "CommUnity", 
-              style: TextStyle(
-                color: Colors.white, 
-                fontWeight: FontWeight.bold
-              )
-            ),
-          ],
-        ),
-        actions: const [
-          Icon(Icons.search, color: Colors.white),
-          SizedBox(width: 16),
-          Icon(Icons.notifications, color: Colors.white),
-          SizedBox(width: 16),
-          CircleAvatar(radius: 14, backgroundColor: Colors.white),
-          SizedBox(width: 16),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -267,7 +243,6 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
           ],
         ),
       ),
-      bottomNavigationBar: const ManagementBottomNav(currentIndex: 0),
     );
   }
 }
