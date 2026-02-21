@@ -5,8 +5,6 @@ import '../models/post.dart';
 import '../models/comment.dart';
 import '../providers/auth_provider.dart';
 import '../services/post_service.dart';
-import '../widgets/app_top_bar.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/user_avatar.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -18,7 +16,6 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  int _selectedNavIndex = 0;
   final TextEditingController _commentController = TextEditingController();
   bool _isSubmitting = false;
   String? _userVote; // 'up', 'down', or null
@@ -106,21 +103,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppTopBar(
-        onMenuPressed: () => Navigator.pop(context),
-        onSearchPressed: () {},
-        onNotificationPressed: () {},
-        onProfilePressed: () => context.push('/profile'),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black87),
+          tooltip: 'Close',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
       ),
       body: _isDemo ? _buildDemoBody() : _buildLiveBody(),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: _selectedNavIndex,
-        onTap: (index) {
-          setState(() => _selectedNavIndex = index);
-          if (index == 0) context.go('/home');
-          if (index == 2) context.push('/profile');
-        },
-      ),
     );
   }
 
