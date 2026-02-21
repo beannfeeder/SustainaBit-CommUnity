@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class RegistrationScreen extends StatelessWidget {
   const RegistrationScreen({super.key});
@@ -33,9 +35,19 @@ class RegistrationScreen extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      final userCredential = await AuthService().signInWithGoogle();
+                      final userCredential =
+                          await AuthService().signInWithGoogle();
                       if (userCredential != null && context.mounted) {
-                        context.go('/welcome-registration');
+                        final user = userCredential.user!;
+                        await context.read<AuthProvider>().login(
+                              user.uid,
+                              displayName: user.displayName,
+                              email: user.email,
+                              photoUrl: user.photoURL,
+                            );
+                        if (context.mounted) {
+                          context.go('/welcome-registration');
+                        }
                       }
                     } catch (e) {
                       if (context.mounted) {

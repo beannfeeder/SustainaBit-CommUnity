@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../models/post.dart';
+import '../services/post_service.dart';
+import '../providers/auth_provider.dart';
 
 class PostCreationScreen extends StatefulWidget {
   const PostCreationScreen({super.key});
@@ -11,44 +16,38 @@ class PostCreationScreen extends StatefulWidget {
 class _PostCreationScreenState extends State<PostCreationScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  
-  // 负责记住你的地点
-  String? _communityLocation;
+
+  // Location selected for this post
   String? _selectedLocation;
-  
-  final List<String> _uploadedFiles = [];
+
+  final List<XFile> _uploadedFiles = [];
+  bool _isLoading = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    
-    // 页面加载后强行解析浏览器真实的 URL
+    // Try to pre-fill location from URL param (still works on native / deep-link)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      String? finalLocation;
-      
+      String? fromUrl;
       try {
-        finalLocation = GoRouterState.of(context).uri.queryParameters['user_location'];
-      } catch (e) {
-        debugPrint("GoRouter 解析 URL 失败...");
+        fromUrl =
+            GoRouterState.of(context).uri.queryParameters['user_location'];
+      } catch (_) {}
+      if (fromUrl == null || fromUrl.isEmpty) {
+        try {
+          final fragment = Uri.base.fragment;
+          if (fragment.contains('user_location=')) {
+            final uri = Uri.parse('http://x$fragment');
+            fromUrl = uri.queryParameters['user_location'];
+          }
+        } catch (_) {}
       }
-
-      // 如果拿不到，暴力读取浏览器的 /#/ 网址
-      if (finalLocation == null || finalLocation.isEmpty) {
-        final fragment = Uri.base.fragment; 
-        if (fragment.contains('user_location=')) {
-          final dummyUri = Uri.parse('http://dummy.com$fragment');
-          finalLocation = dummyUri.queryParameters['user_location'];
-        }
-      }
-
-      // 只要拿到数据，就塞进页面里
-      if (finalLocation != null && finalLocation.isNotEmpty) {
+      if (fromUrl != null && fromUrl.isNotEmpty && mounted) {
         setState(() {
-          // 注意这里的 finalLocation! (加了感叹号) 解决了报错
-          _communityLocation = Uri.decodeComponent(finalLocation ?? '').replaceAll('+', ' ');
-          _selectedLocation = _communityLocation;; 
+          _selectedLocation =
+              Uri.decodeComponent(fromUrl!).replaceAll('+', ' ');
         });
-        debugPrint("成功提取地点: $_communityLocation");
       }
     });
   }
@@ -85,7 +84,6 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
             const Text(
               'TITLE',
               style: TextStyle(
@@ -95,7 +93,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 letterSpacing: 0.5,
               ),
             ),
-                       
+
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
@@ -111,7 +109,8 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFF4A90E2)),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
                 fillColor: Colors.white,
               ),
@@ -152,12 +151,14 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
+                      border: Border(
+                          top: BorderSide(color: Colors.grey, width: 0.5)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome, size: 16, color: Colors.grey[600]),
+                        Icon(Icons.auto_awesome,
+                            size: 16, color: Colors.grey[600]),
                         const SizedBox(width: 6),
                         const Text(
                           'AI ENHANCE DESCRIPTION',
@@ -178,12 +179,12 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
 
             // Add Location Option
             _buildOptionRow(
-                  icon: Icons.location_on_outlined,
-                  title: _selectedLocation ?? 'Add location', 
-                  onTap: () {
-                    _showLocationPicker(context);
-                  },
-                ),
+              icon: Icons.location_on_outlined,
+              title: _selectedLocation ?? 'Add location',
+              onTap: () {
+                _showLocationPicker(context);
+              },
+            ),
             const SizedBox(height: 16),
 
             // Upload Option
@@ -201,14 +202,24 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _sharePost,
+                onPressed: _isLoading ? null : _sharePost,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  disabledBackgroundColor: Colors.grey[400],
                 ),
-                child: const Text('Share', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text('Share',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -231,7 +242,10 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
           children: [
             Icon(icon, size: 20, color: Colors.grey[600]),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.black87))),
+            Expanded(
+                child: Text(title,
+                    style:
+                        const TextStyle(fontSize: 16, color: Colors.black87))),
             Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
@@ -240,42 +254,73 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   }
 
   void _showLocationPicker(BuildContext context) {
+    final TextEditingController locationController =
+        TextEditingController(text: _selectedLocation ?? '');
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Select Location',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            if (_communityLocation != null)
-              Text(
-                'Your post will be visible to members in $_communityLocation',
-                style: TextStyle(color: Colors.blue[700], fontSize: 13),
+            const Text('Add Location',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('Where is this post about?',
+                style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: locationController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'e.g. Jalan Jati Perkasa',
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF4A90E2), width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.home_work_outlined),
-              title: Text('My Community (${_communityLocation ?? "Not Set"})'),
-              onTap: () {
-                setState(() => _selectedLocation = _communityLocation);
-                Navigator.pop(context);
-              },
             ),
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text('Change Location'),
-              onTap: () {
-                Navigator.pop(context); 
-                context.push('/welcome-registration'); 
-              },
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() => _selectedLocation = null);
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Clear'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A90E2),
+                        foregroundColor: Colors.white),
+                    onPressed: () {
+                      final loc = locationController.text.trim();
+                      setState(() =>
+                          _selectedLocation = loc.isNotEmpty ? loc : null);
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Confirm'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -291,32 +336,101 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Upload Files', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Upload Files',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            ListTile(leading: const Icon(Icons.camera_alt), title: const Text('Take Photo'), onTap: () => Navigator.pop(context)),
-            ListTile(leading: const Icon(Icons.photo_library), title: const Text('Choose from Gallery'), onTap: () => Navigator.pop(context)),
-            ListTile(leading: const Icon(Icons.attach_file), title: const Text('Attach File'), onTap: () => Navigator.pop(context)),
+            ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take Photo'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? photo = await _picker.pickImage(
+                      source: ImageSource.camera, imageQuality: 70);
+                  if (photo != null) {
+                    setState(() => _uploadedFiles.add(photo));
+                  }
+                }),
+            ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final List<XFile> images =
+                      await _picker.pickMultiImage(imageQuality: 70);
+                  if (images.isNotEmpty) {
+                    setState(() {
+                      _uploadedFiles.addAll(images);
+                    });
+                  }
+                }),
           ],
         ),
       ),
     );
   }
 
-  void _sharePost() {
+  Future<void> _sharePost() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a title for your post'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please enter a title for your post'),
+          backgroundColor: Colors.red));
       return;
     }
 
     if (_descriptionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a description for your post'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please enter a description for your post'),
+          backgroundColor: Colors.red));
       return;
     }
 
-    debugPrint('Location: $_selectedLocation');
-    debugPrint('Files: $_uploadedFiles');
+    setState(() => _isLoading = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post shared successfully!'), backgroundColor: Colors.green));
-    context.pop();
+    try {
+      final auth = context.read<AuthProvider>();
+      if (auth.userId == null) {
+        throw Exception("You must be logged in to post.");
+      }
+
+      final postService = PostService();
+
+      // 1. Upload Images to Firebase Storage
+      List<String> imageUrls = [];
+      if (_uploadedFiles.isNotEmpty) {
+        imageUrls = await postService.uploadImages(_uploadedFiles);
+      }
+
+      // 2. Create Post object
+      final post = Post(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        authorId: auth.userId!,
+        authorName: auth.displayNameOrFallback,
+        authorRole: auth.userRole,
+        authorPhotoUrl: auth.photoUrl ?? '',
+        location: _selectedLocation,
+        imageUrls: imageUrls,
+        createdAt: DateTime.now(),
+      );
+
+      // 3. Save to Firestore
+      await postService.createPost(post);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Post shared successfully!'),
+            backgroundColor: Colors.green));
+        context.pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Failed to post: $e'), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }
