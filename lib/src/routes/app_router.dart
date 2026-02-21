@@ -8,6 +8,7 @@ import '../screens/registration_screen.dart';
 import '../screens/welcome_registration_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/post_creation_screen.dart';
+import '../screens/mgmt_post_creation_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/admin_assign_zone_screen.dart';
 import '../screens/mgmt_dashboard.dart';
@@ -37,9 +38,18 @@ class AppRouter {
       return null;
     },
     routes: [
-      GoRoute(path: '/', name: 'splash', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/registration', name: 'registration', builder: (context, state) => const RegistrationScreen()),
-      GoRoute(path: '/welcome-registration', name: 'welcome-registration', builder: (context, state) => const WelcomeRegistrationScreen()),
+      GoRoute(
+          path: '/',
+          name: 'splash',
+          builder: (context, state) => const SplashScreen()),
+      GoRoute(
+          path: '/registration',
+          name: 'registration',
+          builder: (context, state) => const RegistrationScreen()),
+      GoRoute(
+          path: '/welcome-registration',
+          name: 'welcome-registration',
+          builder: (context, state) => const WelcomeRegistrationScreen()),
 
       // ── Shell: 负责底部导航栏的页面组 ──
       ShellRoute(
@@ -49,37 +59,43 @@ class AppRouter {
           GoRoute(
             path: '/mgmt-dashboard',
             name: 'mgmt-dashboard',
-            pageBuilder: (context, state) => const NoTransitionPage(child: MgmtDashboard()),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MgmtDashboard()),
           ),
           // 普通用户 Feed
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) => const NoTransitionPage(child: HomeScreen()),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: HomeScreen()),
           ),
           // 普通用户 Profile
           GoRoute(
             path: '/profile',
             name: 'profile',
-            pageBuilder: (context, state) => const NoTransitionPage(child: ProfileScreen()),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfileScreen()),
           ),
           // 🌟 新增：管理层专用的 Feed 分身
           GoRoute(
             path: '/mgmt-home',
             name: 'mgmt-home',
-            pageBuilder: (context, state) => const NoTransitionPage(child: HomeScreen()), 
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: HomeScreen()),
           ),
           // 🌟 新增：管理层专用的 Profile 分身
           GoRoute(
             path: '/mgmt-profile',
             name: 'mgmt-profile',
-            pageBuilder: (context, state) => const NoTransitionPage(child: ProfileScreen()), 
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfileScreen()),
           ),
           // 🌟 新增：问题列表
           GoRoute(
             path: '/issues',
             name: 'issues',
-            pageBuilder: (context, state) => const NoTransitionPage(child: IssuePage()),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: IssuePage()),
           ),
         ],
       ),
@@ -101,10 +117,23 @@ class AppRouter {
           return IssueDetailPage(issueId: issueId);
         },
       ),
-      GoRoute(path: '/settings', name: 'settings', builder: (context, state) => const SettingsScreen()),
-      GoRoute(path: '/search', name: 'search', builder: (context, state) => const SearchScreen()),
-      GoRoute(path: '/post-creation', builder: (context, state) => const PostCreationScreen()),
-      GoRoute(path: '/admin-zone', builder: (context, state) => const AdminAssignZoneScreen()),
+      GoRoute(
+          path: '/settings',
+          name: 'settings',
+          builder: (context, state) => const SettingsScreen()),
+      GoRoute(
+          path: '/search',
+          name: 'search',
+          builder: (context, state) => const SearchScreen()),
+      GoRoute(
+          path: '/post-creation',
+          builder: (context, state) => const PostCreationScreen()),
+      GoRoute(
+          path: '/mgmt-post-creation',
+          builder: (context, state) => const MgmtPostCreationScreen()),
+      GoRoute(
+          path: '/admin-zone',
+          builder: (context, state) => const AdminAssignZoneScreen()),
     ],
     errorBuilder: (context, state) => const ErrorScreen(),
   );
@@ -115,8 +144,7 @@ class ErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Error')), 
-      body: const Center(child: Text('Page not found'))
-    );
+        appBar: AppBar(title: const Text('Error')),
+        body: const Center(child: Text('Page not found')));
   }
 }

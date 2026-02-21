@@ -16,6 +16,7 @@ class Post {
   final int views;
   final int commentCount;
   final String status;
+  final String type; // 'post' or 'announcement'
 
   Post({
     this.id,
@@ -33,6 +34,7 @@ class Post {
     this.views = 0,
     this.commentCount = 0,
     this.status = 'Open',
+    this.type = 'post',
   });
 
   Map<String, dynamic> toMap() {
@@ -51,6 +53,7 @@ class Post {
       'views': views,
       'commentCount': commentCount,
       'status': status,
+      'type': type,
     };
   }
 
@@ -72,6 +75,7 @@ class Post {
       views: data['views'] ?? 0,
       commentCount: data['commentCount'] ?? 0,
       status: data['status'] ?? 'Open',
+      type: data['type'] ?? 'post',
     );
   }
 }

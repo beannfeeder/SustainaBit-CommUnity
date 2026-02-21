@@ -14,14 +14,13 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  
   // 🌟 修改：把 /mgmt-home 和 /mgmt-profile 加入“管理模式阵营”
   bool _isViewingManagement(String location) {
-    return location.startsWith('/mgmt-dashboard') || 
-           location.startsWith('/mgmt-home') || 
-           location.startsWith('/mgmt-profile') || 
-           location.startsWith('/issues') || 
-           location.startsWith('/admin-zone');
+    return location.startsWith('/mgmt-dashboard') ||
+        location.startsWith('/mgmt-home') ||
+        location.startsWith('/mgmt-profile') ||
+        location.startsWith('/issues') ||
+        location.startsWith('/admin-zone');
   }
 
   int _locationToIndex(String location, bool isMgmtView) {
@@ -41,9 +40,10 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final location = GoRouterState.of(context).uri.toString();
-    
+
     final bool isManagementRole = auth.userRole == 'management';
-    final bool isInMgmtView = isManagementRole && _isViewingManagement(location);
+    final bool isInMgmtView =
+        isManagementRole && _isViewingManagement(location);
 
     final currentIndex = _locationToIndex(location, isInMgmtView);
 
@@ -65,26 +65,44 @@ class _MainShellState extends State<MainShell> {
       body: widget.child,
       bottomNavigationBar: AppBottomNav(
         currentIndex: currentIndex,
-        isManagement: isInMgmtView, 
+        isManagement: isInMgmtView,
         onTap: (index) {
           if (isInMgmtView) {
             // 🌟 核心修改：在 5 按钮模式下，跳转走专门的 /mgmt- 路径
             switch (index) {
-              case 0: context.go('/mgmt-dashboard'); break;
-              case 1: context.go('/mgmt-home'); break; // 看这里！
-              case 3: context.go('/issues'); break;
-              case 4: context.go('/mgmt-profile'); break; // 还有这里！
+              case 0:
+                context.go('/mgmt-dashboard');
+                break;
+              case 1:
+                context.go('/mgmt-home');
+                break; // 看这里！
+              case 3:
+                context.go('/issues');
+                break;
+              case 4:
+                context.go('/mgmt-profile');
+                break; // 还有这里！
             }
           } else {
             switch (index) {
-              case 0: context.go('/home'); break;
-              case 2: context.go('/profile'); break;
+              case 0:
+                context.go('/home');
+                break;
+              case 2:
+                context.go('/profile');
+                break;
             }
           }
         },
       ),
       floatingActionButton: CreateButton(
-        onPressed: () => context.push('/post-creation'),
+        onPressed: () {
+          if (isInMgmtView) {
+            context.push('/mgmt-post-creation');
+          } else {
+            context.push('/post-creation');
+          }
+        },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );

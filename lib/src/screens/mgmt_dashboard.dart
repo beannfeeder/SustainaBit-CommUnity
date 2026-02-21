@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import '../models/post.dart';
+import '../services/post_service.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/post_card.dart';
 
 class MgmtDashboard extends StatefulWidget {
   const MgmtDashboard({super.key});
@@ -12,9 +18,38 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
   int _currentPendingPage = 0;
   final int _totalPendingPages = 5; // Total number of pending issues
 
+  final PostService _postService = PostService();
+  final Map<String, String?> _userVotes = {};
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Future<void> _loadVoteFor(String postId, String userId) async {
+    if (_userVotes.containsKey(postId)) return;
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
+  Future<void> _handleUpvote(String postId, String userId) async {
+    await _postService.upvotePost(postId, userId);
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
+  Future<void> _handleDownvote(String postId, String userId) async {
+    await _postService.downvotePost(postId, userId);
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
   // Sample data for ratings
   String get currentRating => "Superb"; // Can be "Superb", "Moderate", "Poor"
-  
+
   Color getRatingColor(String rating) {
     switch (rating) {
       case "Superb":
@@ -54,6 +89,8 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final userId = context.watch<AuthProvider>().userId;
+
     // 🌟 核心修改：去掉了内部的 appBar 和 bottomNavigationBar
     // 只保留了 Scaffold 的背景色和真实的内容主体 (body)
     return Scaffold(
@@ -73,7 +110,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Stats cards row
             Row(
               children: [
@@ -104,7 +141,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
               ],
             ),
             const SizedBox(height: 30),
-            
+
             // Pending Issues section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,7 +212,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Pending issues carousel
             SizedBox(
               height: 120,
@@ -189,34 +226,137 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
                 children: const [
                   PendingIssueCard(
                     title: "Tree has fallen",
-                    description: "Tree at Sungai Petani has fallen result in traffic jam, delay work could increase the severity to emergency",
+                    description:
+                        "Tree at Sungai Petani has fallen result in traffic jam, delay work could increase the severity to emergency",
                     urgency: "Urgent - Today 1:31pm",
                   ),
                   PendingIssueCard(
                     title: "Flash Flood",
-                    description: "Heavy rain caused flooding in the basement parking area.",
+                    description:
+                        "Heavy rain caused flooding in the basement parking area.",
                     urgency: "Urgent - 2 hours ago",
                   ),
                   PendingIssueCard(
                     title: "Broken Bench",
-                    description: "A wooden bench in the community garden has a broken leg.",
+                    description:
+                        "A wooden bench in the community garden has a broken leg.",
                     urgency: "Normal - Today 10:00am",
                   ),
                   PendingIssueCard(
                     title: "Pothole on Main Road",
-                    description: "Small pothole starting to form near the guard house that needs immediate attention.",
+                    description:
+                        "Small pothole starting to form near the guard house that needs immediate attention.",
                     urgency: "Normal - 5 hours ago",
                   ),
                   PendingIssueCard(
                     title: "Broken Water Pipe",
-                    description: "Water pipe burst near the community center causing water shortage issues.",
+                    description:
+                        "Water pipe burst near the community center causing water shortage issues.",
                     urgency: "Urgent - 30 minutes ago",
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
-            
+
+            // ── Recent Announcements Section ──
+            const Text(
+              "Recent Announcements",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            StreamBuilder<List<Post>>(
+              stream: _postService.getPostsStream(type: 'announcement'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading announcements'));
+                }
+                final announcements = snapshot.data ?? [];
+
+                if (announcements.isEmpty) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: const Text(
+                      "No announcements today.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  );
+                }
+
+                // Load user votes safely
+                if (userId != null) {
+                  for (final post in announcements) {
+                    if (post.id != null) _loadVoteFor(post.id!, userId);
+                  }
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: announcements.length > 3
+                      ? 3
+                      : announcements
+                          .length, // only show up to 3 latest in dashboard
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final post = announcements[index];
+                    final postId = post.id ?? '';
+                    return PostCard(
+                      username: post.authorRole == 'management'
+                          ? 'Management'
+                          : (post.authorName.isNotEmpty
+                              ? post.authorName
+                              : post.authorId),
+                      location: post.location ?? 'Unknown Location',
+                      timeAgo: _timeAgo(post.createdAt),
+                      status: post.status,
+                      statusColor: post.status == 'Resolved'
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFF2196F3),
+                      title: post.title,
+                      tags: const [], // Dashboard announcements probably don't need all tags shown
+                      imageUrl: post.imageUrls.isNotEmpty
+                          ? post.imageUrls.first
+                          : null,
+                      authorPhotoUrl: post.authorPhotoUrl.isNotEmpty
+                          ? post.authorPhotoUrl
+                          : null,
+                      upvotes: post.upvotes,
+                      downvotes: post.downvotes,
+                      viewCount: post.views,
+                      commentCount: post.commentCount,
+                      userVote: _userVotes[postId],
+                      onTap: () => context.push('/post-detail/$postId'),
+                      onUpvote: userId != null && postId.isNotEmpty
+                          ? () => _handleUpvote(postId, userId)
+                          : null,
+                      onDownvote: userId != null && postId.isNotEmpty
+                          ? () => _handleDownvote(postId, userId)
+                          : null,
+                      onComment: () => context.push('/post-detail/$postId'),
+                    );
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 30),
+
             // In-Progress Tasks section
             const Text(
               "In-Progress Tasks",
@@ -227,17 +367,19 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Task items
             const InProgressTaskCard(
               title: "Broken Street Light near The Garden Mall",
-              description: "Street light was reportedly broken near the garden mall, worker has been dispatched and currently working on it.",
+              description:
+                  "Street light was reportedly broken near the garden mall, worker has been dispatched and currently working on it.",
               status: "In Progress - Last updated on 7:30 a.m",
             ),
             const SizedBox(height: 12),
             const InProgressTaskCard(
               title: "Broken Street Light near The Garden Mall",
-              description: "Street light was reportedly broken near the garden mall, worker has been dispatched and currently working on it.",
+              description:
+                  "Street light was reportedly broken near the garden mall, worker has been dispatched and currently working on it.",
               status: "In Progress - Last updated on 7:30 a.m",
             ),
           ],
