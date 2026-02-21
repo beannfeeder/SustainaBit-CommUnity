@@ -35,12 +35,16 @@ class RegistrationScreen extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      final userCredential = await AuthService().signInWithGoogle();
+                      final userCredential =
+                          await AuthService().signInWithGoogle();
                       if (userCredential != null && context.mounted) {
-                        // Notify provider that user is logged in
+                        final user = userCredential.user!;
                         await context.read<AuthProvider>().login(
-                          userCredential.user!.uid,
-                        );
+                              user.uid,
+                              displayName: user.displayName,
+                              email: user.email,
+                              photoUrl: user.photoURL,
+                            );
                         if (context.mounted) {
                           context.go('/welcome-registration');
                         }

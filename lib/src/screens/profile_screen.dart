@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/content_tab_toggle.dart';
+import '../widgets/user_avatar.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -49,66 +50,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Row(
         children: [
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              const CircleAvatar(
-                radius: 40,
-                backgroundColor: Color(0xFF4A90E2),
-                child: Icon(Icons.person, size: 44, color: Colors.white),
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: Container(
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) => Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                UserAvatar(
+                  photoUrl: auth.photoUrl,
+                  radius: 40,
+                ),
+                Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
-                  child: const Icon(Icons.edit, size: 14, color: Colors.black87),
+                  child:
+                      const Icon(Icons.edit, size: 14, color: Colors.black87),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Hello, Joe!',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) => Text(
+                    'Hello, ${auth.displayNameOrFallback.split(' ').first}!',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
                 Consumer<AuthProvider>(
                   builder: (context, auth, _) => Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: auth.userRole == 'management' ? Colors.amber : Colors.blueGrey,
+                          color: auth.userRole == 'management'
+                              ? Colors.amber
+                              : Colors.blueGrey,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           auth.userRole.toUpperCase(),
-                          style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 8),
                       // Debug switch
                       InkWell(
                         onTap: () {
-                          final newRole = auth.userRole == 'user' ? 'management' : 'user';
+                          final newRole =
+                              auth.userRole == 'user' ? 'management' : 'user';
                           auth.setRole(newRole);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Role switched to $newRole (Debug)')),
+                            SnackBar(
+                                content:
+                                    Text('Role switched to $newRole (Debug)')),
                           );
                         },
-                        child: const Icon(Icons.swap_horiz, size: 16, color: Colors.grey),
+                        child: const Icon(Icons.swap_horiz,
+                            size: 16, color: Colors.grey),
                       )
                     ],
                   ),
@@ -146,7 +158,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+                      child: const Text('Sign Out',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),

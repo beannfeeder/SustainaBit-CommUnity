@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../services/post_service.dart';
 import '../widgets/app_top_bar.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/user_avatar.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final String postId;
@@ -52,7 +53,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         widget.postId,
         Comment(
           authorId: auth.userId!,
+          authorName: auth.displayNameOrFallback,
           authorRole: auth.userRole,
+          authorPhotoUrl: auth.photoUrl ?? '',
           content: text,
           createdAt: DateTime.now(),
         ),
@@ -222,10 +225,11 @@ class _PostHeader extends StatelessWidget {
           // Author row
           Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                photoUrl:
+                    post.authorPhotoUrl.isNotEmpty ? post.authorPhotoUrl : null,
                 radius: 20,
-                backgroundColor: Colors.grey[300],
-                child: const Icon(Icons.person, color: Colors.white),
+                isManagement: post.authorRole == 'management',
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -235,7 +239,9 @@ class _PostHeader extends StatelessWidget {
                     Text(
                       post.authorRole == 'management'
                           ? 'Management'
-                          : post.authorId,
+                          : (post.authorName.isNotEmpty
+                              ? post.authorName
+                              : post.authorId),
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 14),
                     ),
@@ -455,12 +461,12 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          UserAvatar(
+            photoUrl: comment.authorPhotoUrl.isNotEmpty
+                ? comment.authorPhotoUrl
+                : null,
             radius: 16,
-            backgroundColor: comment.authorRole == 'management'
-                ? const Color(0xFF4A90E2)
-                : Colors.grey[300],
-            child: Icon(Icons.person, color: Colors.white, size: 16),
+            isManagement: comment.authorRole == 'management',
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -472,7 +478,9 @@ class _CommentTile extends StatelessWidget {
                     Text(
                       comment.authorRole == 'management'
                           ? 'Management'
-                          : comment.authorId,
+                          : (comment.authorName.isNotEmpty
+                              ? comment.authorName
+                              : comment.authorId),
                       style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
@@ -539,10 +547,11 @@ class _CommentInputBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.grey[300],
-            child: const Icon(Icons.person, color: Colors.white, size: 16),
+          Consumer<AuthProvider>(
+            builder: (_, auth, __) => UserAvatar(
+              photoUrl: auth.photoUrl,
+              radius: 16,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(

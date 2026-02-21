@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'user_avatar.dart';
 
 /// A Reddit-inspired post card that shows a vote bar, image, and stats.
 class PostCard extends StatelessWidget {
@@ -16,6 +17,7 @@ class PostCard extends StatelessWidget {
   final int downvotes;
   final int viewCount;
   final int commentCount;
+  final String? authorPhotoUrl;
   final String? userVote; // 'up', 'down', or null
 
   final String? duplicatePostLabel;
@@ -38,6 +40,7 @@ class PostCard extends StatelessWidget {
     this.downvotes = 0,
     this.viewCount = 0,
     this.commentCount = 0,
+    this.authorPhotoUrl,
     this.userVote,
     this.duplicatePostLabel,
     this.onTap,
@@ -73,13 +76,10 @@ class PostCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  UserAvatar(
+                    photoUrl: authorPhotoUrl,
                     radius: 16,
-                    backgroundColor: username == 'Management'
-                        ? const Color(0xFF4A90E2)
-                        : Colors.grey[300],
-                    child:
-                        const Icon(Icons.person, color: Colors.white, size: 16),
+                    isManagement: username == 'Management',
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -316,24 +316,6 @@ class _VoteButton extends StatelessWidget {
         child: Icon(icon,
             size: 18, color: active ? activeColor : Colors.grey[500]),
       ),
-    );
-  }
-}
-
-class _PostTag extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _PostTag({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration:
-          BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-      child: Text(label,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
     );
   }
 }

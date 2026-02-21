@@ -10,6 +10,7 @@ import '../screens/search_screen.dart';
 import '../screens/post_creation_screen.dart';
 import '../screens/post_detail_screen.dart';
 import '../screens/admin_assign_zone_screen.dart';
+import '../screens/mgmt_dashboard.dart';
 import '../widgets/main_shell.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -20,19 +21,23 @@ class AppRouter {
   static final router = GoRouter(
     initialLocation: '/registration',
     redirect: (context, state) {
-      final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
+      final auth = context.read<AuthProvider>();
+      final isLoggedIn = auth.isLoggedIn;
+      final isManagement = auth.userRole == 'management';
       final path = state.uri.path;
 
-      // These routes are public / unauthenticated
+      // Public / unauthenticated routes
       final isAuthRoute = path == '/' ||
           path == '/registration' ||
           path.startsWith('/welcome-registration');
 
-      // Not logged in → always go to registration (except on auth screens)
+      // Not logged in → send to registration (except on auth screens)
       if (!isLoggedIn && !isAuthRoute) return '/registration';
 
-      // Logged in → don't stay on auth screens
-      if (isLoggedIn && isAuthRoute) return '/home';
+      // Logged in + on auth screen → send to role-appropriate home
+      if (isLoggedIn && isAuthRoute) {
+        return isManagement ? '/mgmt-dashboard' : '/home';
+      }
 
       return null;
     },
@@ -98,6 +103,13 @@ class AppRouter {
       GoRoute(
         path: '/admin-zone',
         builder: (context, state) => const AdminAssignZoneScreen(),
+      ),
+
+      // ── Management dashboard (full screen, no shell) ──
+      GoRoute(
+        path: '/mgmt-dashboard',
+        name: 'mgmt-dashboard',
+        builder: (context, state) => const MgmtDashboard(),
       ),
     ],
     errorBuilder: (context, state) => const ErrorScreen(),

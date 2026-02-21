@@ -5,7 +5,9 @@ class Post {
   final String title;
   final String description;
   final String authorId;
+  final String authorName; // denormalized for display
   final String authorRole;
+  final String authorPhotoUrl; // Google profile photo
   final String? location;
   final List<String> imageUrls;
   final DateTime createdAt;
@@ -20,7 +22,9 @@ class Post {
     required this.title,
     required this.description,
     required this.authorId,
+    this.authorName = '',
     required this.authorRole,
+    this.authorPhotoUrl = '',
     this.location,
     this.imageUrls = const [],
     required this.createdAt,
@@ -36,7 +40,9 @@ class Post {
       'title': title,
       'description': description,
       'authorId': authorId,
+      'authorName': authorName,
       'authorRole': authorRole,
+      'authorPhotoUrl': authorPhotoUrl,
       'location': location,
       'imageUrls': imageUrls,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -55,7 +61,9 @@ class Post {
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       authorId: data['authorId'] ?? '',
+      authorName: data['authorName'] ?? '',
       authorRole: data['authorRole'] ?? 'user',
+      authorPhotoUrl: data['authorPhotoUrl'] ?? '',
       location: data['location'],
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),

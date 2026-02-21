@@ -154,7 +154,9 @@ class _ForumPostListState extends State<_ForumPostList> {
             return PostCard(
               username: post.authorRole == 'management'
                   ? 'Management'
-                  : post.authorId,
+                  : (post.authorName.isNotEmpty
+                      ? post.authorName
+                      : post.authorId),
               location: post.location ?? 'Unknown Location',
               timeAgo: _timeAgo(post.createdAt),
               status: post.status,
@@ -164,6 +166,8 @@ class _ForumPostListState extends State<_ForumPostList> {
               title: post.title,
               tags: const [],
               imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
+              authorPhotoUrl:
+                  post.authorPhotoUrl.isNotEmpty ? post.authorPhotoUrl : null,
               upvotes: post.upvotes,
               downvotes: post.downvotes,
               viewCount: post.views,
