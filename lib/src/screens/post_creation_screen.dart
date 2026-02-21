@@ -1,10 +1,14 @@
+import 'dart:convert'; 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http; 
 import '../models/post.dart';
 import '../services/post_service.dart';
 import '../providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PostCreationScreen extends StatefulWidget {
   const PostCreationScreen({super.key});
@@ -19,6 +23,9 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
 
   // Location selected for this post
   String? _selectedLocation;
+  
+  // 你的 Google API Key
+  final String _googleApiKey = "AIzaSyANJht0xA4ES_dETC14bC3L9yJuYjiHkuE"; 
 
   final List<XFile> _uploadedFiles = [];
   bool _isLoading = false;
@@ -27,12 +34,12 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   @override
   void initState() {
     super.initState();
-    // Try to pre-fill location from URL param (still works on native / deep-link)
+    _fetchDefaultLocation();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       String? fromUrl;
       try {
-        fromUrl =
-            GoRouterState.of(context).uri.queryParameters['user_location'];
+        fromUrl = GoRouterState.of(context).uri.queryParameters['user_location'];
       } catch (_) {}
       if (fromUrl == null || fromUrl.isEmpty) {
         try {
@@ -45,11 +52,31 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
       }
       if (fromUrl != null && fromUrl.isNotEmpty && mounted) {
         setState(() {
-          _selectedLocation =
-              Uri.decodeComponent(fromUrl!).replaceAll('+', ' ');
+          _selectedLocation ??= Uri.decodeComponent(fromUrl!).replaceAll('+', ' ');
         });
       }
     });
+  }
+
+  Future<void> _fetchDefaultLocation() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data()!.containsKey('defaultLocation')) {
+          final defaultLoc = doc.data()!['defaultLocation'];
+          if (defaultLoc != null && defaultLoc.toString().isNotEmpty) {
+            if (mounted) {
+              setState(() {
+                _selectedLocation ??= defaultLoc.toString();
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("获取默认地址失败: $e");
+    }
   }
 
   @override
@@ -93,7 +120,6 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 letterSpacing: 0.5,
               ),
             ),
-
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
@@ -109,8 +135,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFF4A90E2)),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
                 fillColor: Colors.white,
               ),
@@ -151,14 +176,12 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: const BoxDecoration(
-                      border: Border(
-                          top: BorderSide(color: Colors.grey, width: 0.5)),
+                      border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(Icons.auto_awesome, size: 16, color: Colors.grey[600]),
                         const SizedBox(width: 6),
                         const Text(
                           'AI ENHANCE DESCRIPTION',
@@ -207,19 +230,15 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                   backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   disabledBackgroundColor: Colors.grey[400],
                 ),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Share',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Share', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -244,8 +263,9 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
             const SizedBox(width: 12),
             Expanded(
                 child: Text(title,
-                    style:
-                        const TextStyle(fontSize: 16, color: Colors.black87))),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16, color: Colors.black87))),
             Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
@@ -253,79 +273,26 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
     );
   }
 
-  void _showLocationPicker(BuildContext context) {
-    final TextEditingController locationController =
-        TextEditingController(text: _selectedLocation ?? '');
-
-    showModalBottomSheet(
+  // 🌟 核心修改点：调用我们独立出去的弹窗 Widget
+  void _showLocationPicker(BuildContext context) async {
+    final selectedStr = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Add Location',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Where is this post about?',
-                style: TextStyle(fontSize: 13, color: Colors.grey)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: locationController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'e.g. Jalan Jati Perkasa',
-                prefixIcon: const Icon(Icons.location_on_outlined),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF4A90E2), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() => _selectedLocation = null);
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Clear'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A90E2),
-                        foregroundColor: Colors.white),
-                    onPressed: () {
-                      final loc = locationController.text.trim();
-                      setState(() =>
-                          _selectedLocation = loc.isNotEmpty ? loc : null);
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Confirm'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      builder: (ctx) => _LocationSearchModal(
+        initialLocation: _selectedLocation,
+        apiKey: _googleApiKey,
       ),
     );
+
+    // 当弹窗关闭并返回值时，更新主页面的地址
+    if (selectedStr != null) {
+      setState(() {
+        _selectedLocation = selectedStr.isEmpty ? null : selectedStr;
+      });
+    }
   }
 
   void _showUploadOptions(BuildContext context) {
@@ -336,16 +303,14 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Upload Files',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Upload Files', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             ListTile(
                 leading: const Icon(Icons.camera_alt),
                 title: const Text('Take Photo'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? photo = await _picker.pickImage(
-                      source: ImageSource.camera, imageQuality: 70);
+                  final XFile? photo = await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
                   if (photo != null) {
                     setState(() => _uploadedFiles.add(photo));
                   }
@@ -355,8 +320,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                 title: const Text('Choose from Gallery'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final List<XFile> images =
-                      await _picker.pickMultiImage(imageQuality: 70);
+                  final List<XFile> images = await _picker.pickMultiImage(imageQuality: 70);
                   if (images.isNotEmpty) {
                     setState(() {
                       _uploadedFiles.addAll(images);
@@ -372,15 +336,13 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   Future<void> _sharePost() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please enter a title for your post'),
-          backgroundColor: Colors.red));
+          content: Text('Please enter a title for your post'), backgroundColor: Colors.red));
       return;
     }
 
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please enter a description for your post'),
-          backgroundColor: Colors.red));
+          content: Text('Please enter a description for your post'), backgroundColor: Colors.red));
       return;
     }
 
@@ -394,13 +356,11 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
 
       final postService = PostService();
 
-      // 1. Upload Images to Firebase Storage
       List<String> imageUrls = [];
       if (_uploadedFiles.isNotEmpty) {
         imageUrls = await postService.uploadImages(_uploadedFiles);
       }
 
-      // 2. Create Post object
       final post = Post(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
@@ -408,29 +368,183 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
         authorName: auth.displayNameOrFallback,
         authorRole: auth.userRole,
         authorPhotoUrl: auth.photoUrl ?? '',
-        location: _selectedLocation,
+        location: _selectedLocation, // 👈 真实定位数据会在这里一起存入数据库
         imageUrls: imageUrls,
         createdAt: DateTime.now(),
       );
 
-      // 3. Save to Firestore
       await postService.createPost(post);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Post shared successfully!'),
-            backgroundColor: Colors.green));
+            content: Text('Post shared successfully!'), backgroundColor: Colors.green));
         context.pop();
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Failed to post: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to post: $e'), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+}
+
+// ============================================================================
+// 🌟 独立出来的专用弹窗组件，完美解决状态刷新问题
+// ============================================================================
+class _LocationSearchModal extends StatefulWidget {
+  final String? initialLocation;
+  final String apiKey;
+
+  const _LocationSearchModal({
+    this.initialLocation,
+    required this.apiKey,
+  });
+
+  @override
+  State<_LocationSearchModal> createState() => _LocationSearchModalState();
+}
+
+class _LocationSearchModalState extends State<_LocationSearchModal> {
+  late TextEditingController _modalController;
+  List<dynamic> _modalPlaceList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _modalController = TextEditingController(text: widget.initialLocation ?? '');
+  }
+
+  @override
+  void dispose() {
+    _modalController.dispose();
+    super.dispose();
+  }
+
+  void _searchPlacesInModal(String input) async {
+    if (input.isEmpty) {
+      setState(() { _modalPlaceList = []; });
+      return;
+    }
+    
+    String url = "https://places.googleapis.com/v1/places:autocomplete";
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': widget.apiKey,
+        },
+        body: jsonEncode({
+          "input": input,
+          "includedRegionCodes": ["MY"]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['suggestions'] != null) {
+          setState(() { _modalPlaceList = result['suggestions']; });
+        } else {
+          setState(() { _modalPlaceList = []; });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching modal suggestions: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Add Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Where is this post about?', style: TextStyle(fontSize: 13, color: Colors.grey)),
+          const SizedBox(height: 16),
+          
+          TextField(
+            controller: _modalController,
+            autofocus: true,
+            onChanged: _searchPlacesInModal, // 触发搜索
+            decoration: InputDecoration(
+              hintText: 'e.g. Jalan Jati Perkasa',
+              prefixIcon: const Icon(Icons.location_on_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+              ),
+              filled: true,
+              fillColor: Colors.grey[50],
+            ),
+          ),
+          
+          // 下拉建议列表
+          if (_modalPlaceList.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              constraints: const BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _modalPlaceList.length,
+                itemBuilder: (context, index) {
+                  final prediction = _modalPlaceList[index]['placePrediction'];
+                  final description = prediction['text']['text'];
+                  return ListTile(
+                    leading: const Icon(Icons.location_on_outlined, color: Colors.blue),
+                    title: Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    onTap: () {
+                      // 用户点击智能提示后，带着选中的文本返回主页面
+                      Navigator.pop(context, description);
+                    },
+                  );
+                },
+              ),
+            ),
+
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    // 点击 Clear 时返回空字符串，告诉主页面清空位置
+                    Navigator.pop(context, "");
+                  },
+                  child: const Text('Clear'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2),
+                      foregroundColor: Colors.white),
+                  onPressed: () {
+                    // 点击 Confirm 时返回自己手动输入的文字
+                    Navigator.pop(context, _modalController.text.trim());
+                  },
+                  child: const Text('Confirm'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

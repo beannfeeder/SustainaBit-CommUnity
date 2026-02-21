@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 
 class IssueDetailPage extends StatelessWidget {
-  final Map<String, String> issue;
+  // 🌟 1. 核心修改：改成接收从 Router 传过来的 String ID
+  final String issueId;
 
-  const IssueDetailPage({super.key, required this.issue});
+  const IssueDetailPage({super.key, required this.issueId});
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 2. Prototype 阶段：因为我们只拿到了 ID，先造一个假数据让页面能显示。
+    // 以后连了 Firebase，你就可以用 issueId 去数据库里拿真实数据替换掉这段了！
+    final Map<String, String> dummyIssue = {
+      'title': 'Tree has fallen (ID: $issueId)', // 把 ID 显示在标题上证明传值成功
+      'desc': 'Tree at Sungai Besi highway fallen due to traffic jam, delays work model increases the severity to emergency.',
+      'time': 'Today 1:30pm',
+    };
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBF7),
       appBar: AppBar(
@@ -19,8 +28,8 @@ class IssueDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. 问题主卡片
-            _buildMainInfoCard(),
+            // 1. 问题主卡片 (把假数据传给卡片)
+            _buildMainInfoCard(dummyIssue),
             const SizedBox(height: 24),
             
             // 2. 证明上传区域
@@ -44,14 +53,15 @@ class IssueDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMainInfoCard() {
+  // 🌟 3. 修改这里，让它接收传进来的数据
+  Widget _buildMainInfoCard(Map<String, String> issueData) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(issue['title']!, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(issueData['title']!, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -59,9 +69,9 @@ class IssueDetailPage extends StatelessWidget {
             child: const Text("Urgent", style: TextStyle(color: Colors.red, fontSize: 10)),
           ),
           const SizedBox(height: 12),
-          Text(issue['desc']!, style: const TextStyle(color: Colors.black87)),
+          Text(issueData['desc']!, style: const TextStyle(color: Colors.black87)),
           const SizedBox(height: 16),
-          Text("Created at ${issue['time']}", style: const TextStyle(color: Colors.red, fontSize: 12)),
+          Text("Created at ${issueData['time']}", style: const TextStyle(color: Colors.red, fontSize: 12)),
         ],
       ),
     );

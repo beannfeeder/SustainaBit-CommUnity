@@ -18,19 +18,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 获取当前用户的角色，判断是否为管理员
+    final auth = context.watch<AuthProvider>();
+    final bool isManagement = auth.userRole == 'management';
+
+    // 🌟 动态生成 tabs 列表
+    List<String> currentTabs = ['My Posts', 'My Issues'];
+    if (isManagement) {
+      currentTabs.add('Zone');
+    }
+
     return Column(
       children: [
         // Profile header
-        _buildProfileHeader(context),
+        _buildProfileHeader(context, auth),
 
         // Tab toggle
         ContentTabToggle(
           selectedTab: _selectedTab,
-          tabs: const ['My Posts', 'My Issues'],
+          tabs: currentTabs, // 🌟 使用动态生成的 tabs
           onTabChanged: (index) {
-            setState(() {
-              _selectedTab = index;
-            });
+            if (isManagement && index == 2) {
+              // 🌟 如果是管理员点击了第 3 个 Tab (Zone)，直接跳转
+              context.push('/admin-zone');
+            } else {
+              // 否则正常切换当前的 Tab 状态
+              setState(() {
+                _selectedTab = index;
+              });
+            }
           },
         ),
 
@@ -44,86 +60,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
+  // 🌟 修改：接收 auth 参数，减少重复监听
+  Widget _buildProfileHeader(BuildContext context, AuthProvider auth) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Row(
         children: [
-          Consumer<AuthProvider>(
-            builder: (context, auth, _) => Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                UserAvatar(
-                  photoUrl: auth.photoUrl,
-                  radius: 40,
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              UserAvatar(
+                photoUrl: auth.photoUrl,
+                radius: 40,
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child:
-                      const Icon(Icons.edit, size: 14, color: Colors.black87),
-                ),
-              ],
-            ),
+                child: const Icon(Icons.edit, size: 14, color: Colors.black87),
+              ),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Consumer<AuthProvider>(
-                  builder: (context, auth, _) => Text(
-                    'Hello, ${auth.displayNameOrFallback.split(' ').first}!',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                Text(
+                  'Hello, ${auth.displayNameOrFallback.split(' ').first}!',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
-                Consumer<AuthProvider>(
-                  builder: (context, auth, _) => Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: auth.userRole == 'management'
-                              ? Colors.amber
-                              : Colors.blueGrey,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          auth.userRole.toUpperCase(),
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: auth.userRole == 'management'
+                            ? Colors.amber
+                            : Colors.blueGrey,
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      const SizedBox(width: 8),
-                      // Debug switch
-                      InkWell(
-                        onTap: () {
-                          final newRole =
-                              auth.userRole == 'user' ? 'management' : 'user';
-                          auth.setRole(newRole);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content:
-                                    Text('Role switched to $newRole (Debug)')),
-                          );
-                        },
-                        child: const Icon(Icons.swap_horiz,
-                            size: 16, color: Colors.grey),
-                      )
-                    ],
-                  ),
+                      child: Text(
+                        auth.userRole.toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Debug switch
+                    InkWell(
+                      onTap: () {
+                        final newRole =
+                            auth.userRole == 'user' ? 'management' : 'user';
+                        auth.setRole(newRole);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text('Role switched to $newRole (Debug)')),
+                        );
+                      },
+                      child: const Icon(Icons.swap_horiz,
+                          size: 16, color: Colors.grey),
+                    )
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
