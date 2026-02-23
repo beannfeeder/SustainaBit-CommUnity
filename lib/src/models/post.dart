@@ -10,6 +10,8 @@ class Post {
   final String authorPhotoUrl; // Google profile photo
   final String? location;
   final List<String> imageUrls;
+  final Map<String, dynamic>? sentiment;
+  final Map<String, dynamic>? priority;
   final DateTime createdAt;
   final int upvotes;
   final int downvotes;
@@ -28,6 +30,8 @@ class Post {
     this.authorPhotoUrl = '',
     this.location,
     this.imageUrls = const [],
+    this.sentiment,
+    this.priority,
     required this.createdAt,
     this.upvotes = 0,
     this.downvotes = 0,
@@ -47,6 +51,8 @@ class Post {
       'authorPhotoUrl': authorPhotoUrl,
       'location': location,
       'imageUrls': imageUrls,
+      'sentiment': sentiment,
+      'priority': priority,
       'createdAt': Timestamp.fromDate(createdAt),
       'upvotes': upvotes,
       'downvotes': downvotes,
@@ -69,6 +75,8 @@ class Post {
       authorPhotoUrl: data['authorPhotoUrl'] ?? '',
       location: data['location'],
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
+      sentiment: data['sentiment'] as Map<String, dynamic>?,
+      priority: data['priority'] as Map<String, dynamic>?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       upvotes: data['upvotes'] ?? data['likes'] ?? 0, // backwards compat
       downvotes: data['downvotes'] ?? 0,

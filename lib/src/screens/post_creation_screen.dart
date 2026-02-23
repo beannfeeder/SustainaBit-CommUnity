@@ -110,7 +110,9 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   // =============================
 
   Future<void> _enhanceDescription() async {
-    if (_descriptionController.text.trim().isEmpty) {
+    final currentDescription = _descriptionController.text.trim();
+    
+    if (currentDescription.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a description first'),
@@ -120,34 +122,51 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
       return;
     }
 
-    setState(() => _isEnhancing = true);
+    setState(() {
+      _isEnhancing = true;
+    });
 
     try {
-      final enhanced = await GeminiService.generate("""
-Enhance this community post description while:
-- Keeping original meaning
-- Making it clearer
-- Keeping similar length
-- Not adding fake info
+      final prompt = '''
+You are helping to enhance a community post description.
 
-Description:
-${_descriptionController.text}
-""");
+Original description: $currentDescription
 
-      _descriptionController.text = enhanced.trim();
+Please enhance this description by:
+- Making it more clear and engaging
+- Keeping the original meaning and intent
+- Maintaining a friendly, community-focused tone
+- Keeping it concise (similar length to the original)
+- Not adding fake information
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Description enhanced'),
-          backgroundColor: Colors.green,
-        ),
-      );
+Return only the enhanced description text, nothing else.''';
+
+      final enhancedText = await GeminiService.generate(prompt);
+
+      if (mounted) {
+        _descriptionController.text = enhancedText.trim();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Description enhanced successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      debugPrint("Enhance error: $e");
-    }
-
-    if (mounted) {
-      setState(() => _isEnhancing = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to enhance description: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isEnhancing = false;
+        });
+      }
     }
   }
 
@@ -155,36 +174,74 @@ ${_descriptionController.text}
   // AI CATEGORIZE
   // =============================
 
-  /// TODO: Replace with actual database call to fetch available categories
+  // =============================
+  // FIRESTORE CATEGORY INTEGRATION
+  // =============================
+
   Future<List<Map<String, dynamic>>> _getAvailableCategories() async {
-    return [
-      {'name': 'Events', 'description': 'for announcements, gatherings, community events'},
-      {'name': 'Damaged Infrastructure', 'description': 'for broken facilities, maintenance issues'},
-      {'name': 'Pollution', 'description': 'for environmental contamination, waste issues'},
-      {'name': 'Wildlife', 'description': 'for animal-related posts'},
-      {'name': 'Community Action', 'description': 'for volunteer activities, group initiatives'},
-      {'name': 'Sustainability Tips', 'description': 'for advice, eco-friendly practices'},
-      {'name': 'Recycling', 'description': 'for waste management, recycling programs'},
-      {'name': 'Green Spaces', 'description': 'for parks, gardens, nature areas'},
-      {'name': 'Climate', 'description': 'for weather, climate change topics'},
-      {'name': 'Transportation', 'description': 'for mobility, public transit issues'},
-    ];
-  }
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('categories')
+        .get();
 
-  /// TODO: Replace with actual database call to save new category
-  Future<void> _saveNewCategoryToDatabase(String categoryName, String colorHex) async {
-    debugPrint('TODO: Save to database - Category: $categoryName, Color: $colorHex');
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return {
+        'name': data['name'] ?? '',
+        'description': data['description'] ?? '',
+      };
+    }).toList();
+  } catch (e) {
+    debugPrint('Error fetching categories: $e');
+    return [];
   }
+}
 
-  Future<List<PostTag>> _categorizePost(String title, String description) async {
-    try {
-      final availableCategories = await _getAvailableCategories();
-      
-      final categoryList = availableCategories
-          .map((cat) => '- ${cat['name']} (${cat['description']})')
-          .join('\n');
-      
-      final prompt = '''
+Future<void> _saveNewCategoryToDatabase(
+  String categoryName,
+  String colorHex,
+  String description,
+) async {
+  try {
+    // 🔥 Sanitize document ID
+    final docId = categoryName
+        .toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+
+    final docRef =
+        FirebaseFirestore.instance.collection('categories').doc(docId);
+
+    final existingDoc = await docRef.get();
+
+    // Prevent duplicate creation
+    if (!existingDoc.exists) {
+      await docRef.set({
+        'name': categoryName,
+        'description': description,
+        'color': '#$colorHex',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('New category saved: $categoryName');
+    } else {
+      debugPrint('Category already exists: $categoryName');
+    }
+  } catch (e) {
+    debugPrint('Error saving category: $e');
+  }
+}
+
+Future<List<PostTag>> _categorizePost(
+    String title, String description) async {
+  try {
+    final availableCategories = await _getAvailableCategories();
+
+    final categoryList = availableCategories
+        .map((cat) => '- ${cat['name']} (${cat['description']})')
+        .join('\n');
+
+    final prompt = '''
 You are an AI that categorizes community posts.
 
 Post Title: $title
@@ -193,54 +250,211 @@ Post Description: $description
 Analyze this post and assign 1-3 relevant categories from the following list, OR create new ones if none fit:
 $categoryList
 
-Return ONLY a JSON array of categories with colors in this exact format:
-[{"label": "Category Name", "color": "#RRGGBB", "isNew": false}, ...]
+Return ONLY a JSON array in this exact format:
+[
+  {
+    "label": "Category Name",
+    "description": "Short description explaining what this category represents",
+    "color": "#RRGGBB",
+    "isNew": false
+  }
+]
 
-IMPORTANT: Set "isNew": true ONLY if you created a category that's NOT in the list above.
+IMPORTANT:
+- Set "isNew": true ONLY if category is NOT in provided list.
+- Keep description short (1 sentence).
+- Do NOT return anything except JSON.
+''';
 
-Choose appropriate colors:
-- Green (#4CAF50) for environmental/positive topics
-- Orange (#FF9800) for warnings/issues
-- Blue (#2196F3) for events/info
-- Red (#F44336) for urgent/damaged items
-- Purple (#9C27B0) for community activities
-- Teal (#009688) for sustainability
+    final response = await GeminiService.generate(prompt);
 
-Example output:
-[{"label": "Damaged Infrastructure", "color": "#F44336", "isNew": false}, {"label": "Beach Cleanup", "color": "#2196F3", "isNew": true}]
+    String jsonString = response.trim();
+
+    // Remove markdown formatting if present
+    jsonString = jsonString
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+
+    final List<dynamic> categories = jsonDecode(jsonString);
+
+    final List<PostTag> tags = [];
+
+    for (var cat in categories) {
+      final label = cat['label'] ?? 'Unknown';
+      final descriptionText = cat['description'] ?? '';
+      final colorHex =
+          (cat['color'] ?? '#4CAF50').toString().replaceAll('#', '');
+      final isNew = cat['isNew'] ?? false;
+
+      // Create tag for UI
+      tags.add(PostTag(
+        label: label,
+        color: Color(int.parse('FF$colorHex', radix: 16)),
+      ));
+
+      // Save new categories
+      if (isNew) {
+        await _saveNewCategoryToDatabase(
+          label,
+          colorHex,
+          descriptionText,
+        );
+      }
+    }
+
+    return tags;
+  } catch (e) {
+    debugPrint('Error categorizing post: $e');
+
+    return [
+      const PostTag(
+        label: 'Community',
+        color: Color(0xFF4CAF50),
+      ),
+    ];
+  }
+}
+
+  // =============================
+  // AI SENTIMENT ANALYSIS
+  // =============================
+
+  Future<Map<String, dynamic>> _analyzeSentiment(
+    String title,
+    String description,
+  ) async {
+    try {
+      final prompt = '''
+You are performing sentiment analysis on a community post.
+
+Return ONLY valid JSON in this exact format:
+
+{
+  "label": "positive | neutral | negative",
+  "score": number between -1.0 and 1.0,
+  "confidence": number between 0.0 and 1.0,
+  "severity": "low | medium | high"
+}
+
+Rules:
+- Do NOT include explanations.
+- Do NOT include markdown formatting.
+- Do NOT include extra text.
+- Output JSON only.
+
+Post Title: $title
+Post Description: $description
 ''';
 
       final response = await GeminiService.generate(prompt);
-      
+
       String jsonString = response.trim();
-      jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
-      
-      final List<dynamic> categories = jsonDecode(jsonString);
-      
-      final List<PostTag> tags = [];
-      for (var cat in categories) {
-        final colorHex = cat['color'].toString().replaceAll('#', '');
-        final isNew = cat['isNew'] ?? false;
-        
-        tags.add(PostTag(
-          label: cat['label'],
-          color: Color(int.parse('FF$colorHex', radix: 16)),
-        ));
-        
-        if (isNew) {
-          await _saveNewCategoryToDatabase(cat['label'], colorHex);
-        }
+
+      // Remove markdown formatting if present
+      jsonString = jsonString
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
+
+      final Map<String, dynamic> sentiment = jsonDecode(jsonString);
+
+      // Validate required fields
+      if (!sentiment.containsKey('label') ||
+          !sentiment.containsKey('score') ||
+          !sentiment.containsKey('confidence') ||
+          !sentiment.containsKey('severity')) {
+        throw Exception('Invalid sentiment response structure');
       }
-      
-      return tags;
+
+      return sentiment;
     } catch (e) {
-      debugPrint('Error categorizing post: $e');
-      return [
-        const PostTag(
-          label: 'Community',
-          color: Color(0xFF4CAF50),
-        ),
-      ];
+      debugPrint('Error analyzing sentiment: $e');
+
+      // Fallback to neutral sentiment
+      return {
+        'label': 'neutral',
+        'score': 0.0,
+        'confidence': 0.0,
+        'severity': 'low',
+      };
+    }
+  }
+
+  // =============================
+  // AI PRIORITY ANALYSIS
+  // =============================
+
+  Future<Map<String, dynamic>> _analyzePriority(
+    String title,
+    String description,
+    List<PostTag> categories,
+    String? location,
+  ) async {
+    try {
+      final categoryList = categories.map((tag) => tag.label).join(', ');
+
+      final prompt = '''
+You are an AI system responsible for classifying the emergency priority of community reports.
+
+Your job is to determine how urgently management should respond.
+
+Return ONLY valid JSON in this format:
+
+{
+  "level": "none | low | medium | high | critical",
+  "score": integer between 0 and 100,
+  "reason": "Short explanation (max 1 sentence)",
+  "confidence": number between 0.0 and 1.0
+}
+
+Guidelines:
+- "critical" = Immediate danger to life, major property damage, safety hazards.
+- "high" = Serious issue that requires urgent attention within 24 hours.
+- "medium" = Important but not urgent.
+- "low" = Minor inconvenience.
+- "none" = Informational or positive post.
+
+Do NOT include explanations outside JSON.
+Do NOT include markdown formatting.
+
+Post Title: $title
+Post Description: $description
+Post Category: $categoryList
+Location: ${location ?? 'Not specified'}
+''';
+
+      final response = await GeminiService.generate(prompt);
+
+      String jsonString = response.trim();
+
+      // Remove markdown formatting if present
+      jsonString = jsonString
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
+
+      final Map<String, dynamic> priority = jsonDecode(jsonString);
+
+      // Validate required fields
+      if (!priority.containsKey('level') ||
+          !priority.containsKey('score') ||
+          !priority.containsKey('reason') ||
+          !priority.containsKey('confidence')) {
+        throw Exception('Invalid priority response structure');
+      }
+
+      return priority;
+    } catch (e) {
+      debugPrint('Error analyzing priority: $e');
+
+      // Fallback to none priority
+      return {
+        'level': 'none',
+        'score': 0,
+        'reason': 'Unable to determine priority',
+        'confidence': 0.0,
+      };
     }
   }
 
@@ -249,6 +463,7 @@ Example output:
   // =============================
 
   Future<void> _sharePost() async {
+    debugPrint("SHARE BUTTON PRESSED");
     if (_titleController.text.trim().isEmpty ||
         _descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -272,6 +487,20 @@ Example output:
       );
 
       _generatedTags = tags;
+
+      // AI Sentiment Analysis
+      final sentimentResult = await _analyzeSentiment(
+        _titleController.text.trim(),
+        _descriptionController.text.trim(),
+      );
+
+      // AI Priority Analysis
+      final priorityResult = await _analyzePriority(
+        _titleController.text.trim(),
+        _descriptionController.text.trim(),
+        tags,
+        _selectedLocation,
+      );
 
       // Upload images if any
       final postService = PostService();
@@ -297,6 +526,8 @@ Example output:
         authorPhotoUrl: auth.photoUrl ?? '',
         location: _selectedLocation,
         imageUrls: imageUrls,
+        sentiment: sentimentResult,
+        priority: priorityResult,
         createdAt: DateTime.now(),
       );
 
