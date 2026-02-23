@@ -19,6 +19,9 @@ class Post {
   final int commentCount;
   final String status;
   final String type; // 'post' or 'announcement'
+  final String? verificationStatus; // 'verified' | 'partial' | 'insufficient' | 'rejected'
+  final String? verificationId; // Reference to proof_verifications collection
+  final DateTime? verifiedAt;
 
   Post({
     this.id,
@@ -39,6 +42,9 @@ class Post {
     this.commentCount = 0,
     this.status = 'Open',
     this.type = 'post',
+    this.verificationStatus,
+    this.verificationId,
+    this.verifiedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -60,6 +66,9 @@ class Post {
       'commentCount': commentCount,
       'status': status,
       'type': type,
+      'verificationStatus': verificationStatus,
+      'verificationId': verificationId,
+      'verifiedAt': verifiedAt != null ? Timestamp.fromDate(verifiedAt!) : null,
     };
   }
 
@@ -84,6 +93,11 @@ class Post {
       commentCount: data['commentCount'] ?? 0,
       status: data['status'] ?? 'Open',
       type: data['type'] ?? 'post',
+      verificationStatus: data['verificationStatus'],
+      verificationId: data['verificationId'],
+      verifiedAt: data['verifiedAt'] != null
+          ? (data['verifiedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 }
