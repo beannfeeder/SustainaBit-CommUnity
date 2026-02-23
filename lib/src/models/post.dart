@@ -10,6 +10,8 @@ class Post {
   final String authorPhotoUrl; // Google profile photo
   final String? location;
   final List<String> imageUrls;
+  final Map<String, dynamic>? sentiment;
+  final Map<String, dynamic>? priority;
   final DateTime createdAt;
   final int upvotes;
   final int downvotes;
@@ -17,6 +19,9 @@ class Post {
   final int commentCount;
   final String status;
   final String type; // 'post' or 'announcement'
+  final String? verificationStatus; // 'verified' | 'partial' | 'insufficient' | 'rejected'
+  final String? verificationId; // Reference to proof_verifications collection
+  final DateTime? verifiedAt;
 
   Post({
     this.id,
@@ -28,6 +33,8 @@ class Post {
     this.authorPhotoUrl = '',
     this.location,
     this.imageUrls = const [],
+    this.sentiment,
+    this.priority,
     required this.createdAt,
     this.upvotes = 0,
     this.downvotes = 0,
@@ -35,6 +42,9 @@ class Post {
     this.commentCount = 0,
     this.status = 'Open',
     this.type = 'post',
+    this.verificationStatus,
+    this.verificationId,
+    this.verifiedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -47,6 +57,8 @@ class Post {
       'authorPhotoUrl': authorPhotoUrl,
       'location': location,
       'imageUrls': imageUrls,
+      'sentiment': sentiment,
+      'priority': priority,
       'createdAt': Timestamp.fromDate(createdAt),
       'upvotes': upvotes,
       'downvotes': downvotes,
@@ -54,6 +66,9 @@ class Post {
       'commentCount': commentCount,
       'status': status,
       'type': type,
+      'verificationStatus': verificationStatus,
+      'verificationId': verificationId,
+      'verifiedAt': verifiedAt != null ? Timestamp.fromDate(verifiedAt!) : null,
     };
   }
 
@@ -69,6 +84,8 @@ class Post {
       authorPhotoUrl: data['authorPhotoUrl'] ?? '',
       location: data['location'],
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
+      sentiment: data['sentiment'] as Map<String, dynamic>?,
+      priority: data['priority'] as Map<String, dynamic>?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       upvotes: data['upvotes'] ?? data['likes'] ?? 0, // backwards compat
       downvotes: data['downvotes'] ?? 0,
@@ -76,6 +93,11 @@ class Post {
       commentCount: data['commentCount'] ?? 0,
       status: data['status'] ?? 'Open',
       type: data['type'] ?? 'post',
+      verificationStatus: data['verificationStatus'],
+      verificationId: data['verificationId'],
+      verifiedAt: data['verifiedAt'] != null
+          ? (data['verifiedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 }
