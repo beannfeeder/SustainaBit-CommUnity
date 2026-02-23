@@ -31,6 +31,11 @@ dependencies:
   # Web compatibility
   web: ^1.1.1
   google_maps_flutter: ^2.14.2
+  cloud_firestore: ^6.1.2
+  image_picker: ^1.2.1
+  firebase_storage: ^13.0.6
+  geolocator: ^14.0.2
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:

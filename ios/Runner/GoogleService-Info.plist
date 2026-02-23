@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>243769216237-ghg627ibato36q5qqgv2qrl452vih34n.apps.googleusercontent.com</string>
+	<string>243769216237-563gjj79benap7j36unkquptc51spnv6.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.243769216237-ghg627ibato36q5qqgv2qrl452vih34n</string>
+	<string>com.googleusercontent.apps.243769216237-563gjj79benap7j36unkquptc51spnv6</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCuIygjAIvgaqAYk1KEVBofMQU-LL3zldo</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.sustainabit.community</string>
+	<string>com.sustai</string>
 	<key>PROJECT_ID</key>
 	<string>sustainabit-c2211</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:243769216237:ios:0d5002dd2e197616bc50e4</string>
+	<string>1:243769216237:ios:1b7d7b418884d7bdbc50e4</string>
 </dict>
 </plist>

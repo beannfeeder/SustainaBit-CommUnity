@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onMenuPressed;
@@ -50,6 +53,23 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        // ── Admin Only Button ──
+        Consumer<AuthProvider>(
+          builder: (context, auth, _) {
+            if (auth.userRole == 'management') {
+              return IconButton(
+                icon: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+                tooltip: 'Admin Dashboard',
+                onPressed: () {
+                  // 🌟 核心修改：使用 context.go 跳转到管理后台主页
+                  // 这将触发 MainShell 切换到底部 5 个按钮的模式
+                  context.go('/mgmt-dashboard');
+                },
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
         IconButton(
           icon: const Icon(Icons.search, color: Colors.white),
           onPressed: onSearchPressed ?? () {},
