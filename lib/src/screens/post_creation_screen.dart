@@ -133,7 +133,7 @@ You are helping to enhance a community post description.
 Original description: $currentDescription
 
 Please enhance this description by:
-- Making it more clear and engaging
+- Making it more clear
 - Keeping the original meaning and intent
 - Maintaining a friendly, community-focused tone
 - Keeping it concise (similar length to the original)
