@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 // 🌟 1. 顶部新增：导入 Firebase Auth 和 Firestore
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart' as app_auth;
 
 class WelcomeRegistrationScreen extends StatefulWidget {
   const WelcomeRegistrationScreen({super.key});
@@ -53,7 +55,9 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
           if (loc != null && loc.toString().isNotEmpty) {
             // 如果是老用户（已经有地址），直接跳转到 home，不显示这个地图页面
             if (mounted) {
-              context.go('/home?user_location=${Uri.encodeComponent(loc.toString())}');
+              final isManagement = context.read<app_auth.AuthProvider>().userRole == 'management';
+              final dest = isManagement ? '/mgmt-dashboard' : '/home?user_location=${Uri.encodeComponent(loc.toString())}';
+              context.go(dest);
             }
             return; // 结束执行
           }
@@ -417,8 +421,9 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
                   // 🌟 2. 底部修改：变成 async 函数，保存数据到 Firebase
                   onPressed: () async {
                     final location = _searchController.text;
+                    final isManagement = context.read<app_auth.AuthProvider>().userRole == 'management';
                     if (location.isNotEmpty) {
-                      
+
                       // -- 新增 Firebase 保存逻辑开始 --
                       try {
                         final user = FirebaseAuth.instance.currentUser;
@@ -427,7 +432,7 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
                               .collection('users')
                               .doc(user.uid)
                               .set({
-                                'defaultLocation': location, 
+                                'defaultLocation': location,
                               }, SetOptions(merge: true)); // merge: true 不会覆盖原有的用户信息
                           debugPrint("地址已成功保存到用户数据库！");
                         }
@@ -436,9 +441,10 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
                       }
                       // -- 新增 Firebase 保存逻辑结束 --
 
-                      context.go('/home?user_location=${Uri.encodeComponent(location)}');
+                      final dest = isManagement ? '/mgmt-dashboard' : '/home?user_location=${Uri.encodeComponent(location)}';
+                      context.go(dest);
                     } else {
-                      context.go('/home');
+                      context.go(isManagement ? '/mgmt-dashboard' : '/home');
                     }
                   },
                   style: OutlinedButton.styleFrom(

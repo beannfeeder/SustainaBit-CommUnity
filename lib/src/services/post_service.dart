@@ -259,6 +259,32 @@ Do NOT return anything except the JSON array.
     return doc.exists ? doc['type'] as String? : null;
   }
 
+  /// Real-time stream for a single post/issue document.
+  Stream<Post?> getPostStream(String postId) {
+    return _firestore
+        .collection(_collectionName)
+        .doc(postId)
+        .snapshots()
+        .map((doc) => doc.exists ? Post.fromFirestore(doc) : null);
+  }
+
+  /// Update the status field of an issue.
+  Future<void> updateIssueStatus(String postId, String status) async {
+    await _firestore.collection(_collectionName).doc(postId).update({
+      'status': status,
+    });
+  }
+
+  /// Upload proof images, save their URLs to the issue, and mark it Resolved.
+  Future<void> submitProofOfWork(
+      String postId, List<XFile> images) async {
+    final urls = await uploadImages(images);
+    await _firestore.collection(_collectionName).doc(postId).update({
+      'status': 'Resolved',
+      'proofImageUrls': urls,
+    });
+  }
+
   /// Increment view count once per screen visit.
   Future<void> incrementViews(String postId) async {
     await _firestore.collection(_collectionName).doc(postId).update({

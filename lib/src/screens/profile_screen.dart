@@ -24,27 +24,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<Post> _userPosts = [];
   List<Post> _userIssues = [];
+  List<Post> _userAnnouncements = [];
   StreamSubscription<List<Post>>? _postsSubscription;
   StreamSubscription<List<Post>>? _issuesSubscription;
+  StreamSubscription<List<Post>>? _announcementsSubscription;
   String? _subscribedUserId;
   final Map<String, String?> _userVotes = {};
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final userId = context.read<AuthProvider>().userId;
+    final authProvider = context.read<AuthProvider>();
+    final userId = authProvider.userId;
+    final isManagement = authProvider.userRole == 'management';
+
     if (userId != null && userId != _subscribedUserId) {
       _subscribedUserId = userId;
       _postsSubscription?.cancel();
       _issuesSubscription?.cancel();
-      _postsSubscription =
-          _postService.getUserPostsStream(userId).listen((posts) {
-        if (mounted) setState(() => _userPosts = posts);
-      });
-      _issuesSubscription =
-          _postService.getUserPostsStream(userId, type: 'issue').listen((issues) {
-        if (mounted) setState(() => _userIssues = issues);
-      });
+      _announcementsSubscription?.cancel();
+
+      if (isManagement) {
+        _announcementsSubscription = _postService
+            .getUserPostsStream(userId, type: 'announcement')
+            .listen((announcements) {
+          if (mounted) setState(() => _userAnnouncements = announcements);
+        });
+      } else {
+        _postsSubscription =
+            _postService.getUserPostsStream(userId).listen((posts) {
+          if (mounted) setState(() => _userPosts = posts);
+        });
+        _issuesSubscription = _postService
+            .getUserPostsStream(userId, type: 'issue')
+            .listen((issues) {
+          if (mounted) setState(() => _userIssues = issues);
+        });
+      }
     }
   }
 
@@ -52,6 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _postsSubscription?.cancel();
     _issuesSubscription?.cancel();
+    _announcementsSubscription?.cancel();
     super.dispose();
   }
 
@@ -86,8 +103,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final bool isManagement = auth.userRole == 'management';
 
-    final List<String> currentTabs = ['My Posts', 'My Issues'];
-    if (isManagement) currentTabs.add('Zone');
+    final List<String> currentTabs = isManagement
+        ? ['My Announcements', 'Zone']
+        : ['My Posts', 'My Issues'];
 
     return Column(
       children: [
@@ -96,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           selectedTab: _selectedTab,
           tabs: currentTabs,
           onTabChanged: (index) {
-            if (isManagement && index == 2) {
+            if (isManagement && index == 1) {
               context.push('/admin-zone');
             } else {
               setState(() => _selectedTab = index);
@@ -104,9 +122,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
         Expanded(
-          child: _selectedTab == 0
-              ? _buildMyPostsTab(context, auth)
-              : _buildMyIssuesTab(context, auth),
+          child: isManagement
+              ? _buildMyAnnouncementsTab(context, auth)
+              : (_selectedTab == 0
+                  ? _buildMyPostsTab(context, auth)
+                  : _buildMyIssuesTab(context, auth)),
         ),
       ],
     );
@@ -175,11 +195,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
                 const SizedBox(height: 8),
                 Row(
-                  children: [
-                    _buildStat('${_userPosts.length}', 'Posts'),
-                    const SizedBox(width: 20),
-                    _buildStat('${_userIssues.length}', 'Issues'),
-                  ],
+                  children: auth.userRole == 'management'
+                      ? [
+                          _buildStat(
+                              '${_userAnnouncements.length}', 'Announcements'),
+                        ]
+                      : [
+                          _buildStat('${_userPosts.length}', 'Posts'),
+                          const SizedBox(width: 20),
+                          _buildStat('${_userIssues.length}', 'Issues'),
+                        ],
                 ),
               ],
             ),
@@ -305,6 +330,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onComment: () => (post.type == 'issue' && auth.userRole == 'management')
               ? context.push('/issue-detail/$postId')
               : context.push('/post-detail/$postId'),
+        );
+      },
+    );
+  }
+
+  Widget _buildMyAnnouncementsTab(BuildContext context, AuthProvider auth) {
+    final userId = auth.userId;
+
+    if (_userAnnouncements.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'You have not made any announcements yet.',
+            style: TextStyle(color: AppTheme.textMeta),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    if (userId != null) {
+      for (final post in _userAnnouncements) {
+        if (post.id != null) _loadVoteFor(post.id!, userId);
+      }
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _userAnnouncements.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final post = _userAnnouncements[index];
+        final postId = post.id ?? '';
+        return PostCard(
+          username: 'Management',
+          location: post.location ?? 'Unknown Location',
+          timeAgo: _timeAgo(post.createdAt),
+          status: null,
+          statusColor: AppTheme.primaryBlue,
+          title: post.title,
+          categoryIds: post.categoryIds,
+          imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
+          authorPhotoUrl: auth.photoUrl,
+          upvotes: post.upvotes,
+          downvotes: post.downvotes,
+          viewCount: post.views,
+          commentCount: post.commentCount,
+          userVote: _userVotes[postId],
+          onTap: postId.isNotEmpty
+              ? () => context.push('/post-detail/$postId')
+              : null,
+          onUpvote: userId != null && postId.isNotEmpty
+              ? () => _handleUpvote(postId, userId)
+              : null,
+          onDownvote: userId != null && postId.isNotEmpty
+              ? () => _handleDownvote(postId, userId)
+              : null,
+          onComment: postId.isNotEmpty
+              ? () => context.push('/post-detail/$postId')
+              : null,
         );
       },
     );

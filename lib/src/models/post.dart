@@ -23,6 +23,7 @@ class Post {
   final String? verificationStatus; // 'verified' | 'partial' | 'insufficient' | 'rejected'
   final String? verificationId; // Reference to proof_verifications collection
   final DateTime? verifiedAt;
+  final List<String> proofImageUrls; // Uploaded proof-of-work images
 
   Post({
     this.id,
@@ -47,6 +48,7 @@ class Post {
     this.verificationStatus,
     this.verificationId,
     this.verifiedAt,
+    this.proofImageUrls = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -72,6 +74,7 @@ class Post {
       'verificationStatus': verificationStatus,
       'verificationId': verificationId,
       'verifiedAt': verifiedAt != null ? Timestamp.fromDate(verifiedAt!) : null,
+      'proofImageUrls': proofImageUrls,
     };
   }
 
@@ -102,6 +105,7 @@ class Post {
       verifiedAt: data['verifiedAt'] != null
           ? (data['verifiedAt'] as Timestamp).toDate()
           : null,
+      proofImageUrls: List<String>.from(data['proofImageUrls'] ?? []),
     );
   }
 }
