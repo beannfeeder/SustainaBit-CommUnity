@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         Expanded(
           child: _selectedTab == 1
-              ? const _PostListView(postType: 'post')
+              ? const _PostListView(postType: 'post', forumFeed: true)
               : const _PostListView(postType: 'announcement'),
         ),
       ],
@@ -38,8 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
 // ── Reusable Post List View for both Forum and Announcements ─────────────────────────────
 class _PostListView extends StatefulWidget {
   final String postType;
+  final bool forumFeed;
 
-  const _PostListView({required this.postType});
+  const _PostListView({required this.postType, this.forumFeed = false});
 
   @override
   State<_PostListView> createState() => _PostListViewState();
@@ -79,10 +80,14 @@ class _PostListViewState extends State<_PostListView> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = context.watch<AuthProvider>().userId;
+    final auth = context.watch<AuthProvider>();
+    final userId = auth.userId;
+    final isManagement = auth.userRole == 'management';
 
     return StreamBuilder<List<Post>>(
-      stream: _postService.getPostsStream(type: widget.postType),
+      stream: widget.forumFeed
+          ? _postService.getForumStream()
+          : _postService.getPostsStream(type: widget.postType),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -137,7 +142,7 @@ class _PostListViewState extends State<_PostListView> {
                       : post.authorId),
               location: post.location ?? 'Unknown Location',
               timeAgo: _timeAgo(post.createdAt),
-              status: post.status,
+              status: post.type == 'issue' ? post.status : null,
               statusColor: post.status == 'Resolved'
                   ? const Color(0xFF4CAF50)
                   : const Color(0xFF2196F3),
@@ -151,14 +156,18 @@ class _PostListViewState extends State<_PostListView> {
               viewCount: post.views,
               commentCount: post.commentCount,
               userVote: _userVotes[postId],
-              onTap: () => context.push('/post-detail/$postId'),
+              onTap: () => (post.type == 'issue' && isManagement)
+                  ? context.push('/issue-detail/$postId')
+                  : context.push('/post-detail/$postId'),
               onUpvote: userId != null && postId.isNotEmpty
                   ? () => _handleUpvote(postId, userId)
                   : null,
               onDownvote: userId != null && postId.isNotEmpty
                   ? () => _handleDownvote(postId, userId)
                   : null,
-              onComment: () => context.push('/post-detail/$postId'),
+              onComment: () => (post.type == 'issue' && isManagement)
+                  ? context.push('/issue-detail/$postId')
+                  : context.push('/post-detail/$postId'),
             );
           },
         );

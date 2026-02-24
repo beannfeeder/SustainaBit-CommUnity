@@ -25,6 +25,33 @@ class PostService {
         .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
   }
 
+  /// Real-time stream for the community forum — includes both regular posts
+  /// and user-reported issues so issues appear in the feed with their status badge.
+  Stream<List<Post>> getForumStream() {
+    return _firestore
+        .collection(_collectionName)
+        .where('type', whereIn: ['post', 'issue'])
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
+  }
+
+  /// Real-time stream of posts authored by a specific user, newest first.
+  /// Sorting is done client-side to avoid requiring a composite Firestore index
+  /// on (authorId, type, createdAt).
+  Stream<List<Post>> getUserPostsStream(String userId, {String type = 'post'}) {
+    return _firestore
+        .collection(_collectionName)
+        .where('authorId', isEqualTo: userId)
+        .where('type', isEqualTo: type)
+        .snapshots()
+        .map((snapshot) {
+      final posts = snapshot.docs.map(Post.fromFirestore).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
+    });
+  }
+
   /// Fetch a single post by document ID.
   Future<Post?> getPostById(String postId) async {
     final doc = await _firestore.collection(_collectionName).doc(postId).get();
@@ -51,10 +78,10 @@ class PostService {
             "Please provide a valid Gemini API Key in lib/src/config/api_key.dart");
       }
 
-      // 1. Fetch recent posts (limit to 100 to avoid huge prompt payloads)
+      // 1. Fetch recent posts and issues (limit to 100 to avoid huge prompt payloads)
       final snapshot = await _firestore
           .collection(_collectionName)
-          .where('type', isEqualTo: 'post')
+          .where('type', whereIn: ['post', 'issue'])
           .orderBy('createdAt', descending: true)
           .limit(100)
           .get();

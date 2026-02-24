@@ -254,7 +254,7 @@ class _PostHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              _StatusBadge(status: post.status),
+              if (post.type == 'issue') _StatusBadge(status: post.status),
             ],
           ),
           const SizedBox(height: 16),

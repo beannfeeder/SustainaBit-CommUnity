@@ -1,10 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
+import '../models/post.dart';
 import '../widgets/content_tab_toggle.dart';
+import '../widgets/post_card.dart';
 import '../widgets/user_avatar.dart';
 import '../services/auth_service.dart';
+import '../services/post_service.dart';
 import '../providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,74 +19,118 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _selectedTab = 0; // 0 for My Posts, 1 for My Issues
+  int _selectedTab = 0;
+  final PostService _postService = PostService();
+
+  List<Post> _userPosts = [];
+  List<Post> _userIssues = [];
+  StreamSubscription<List<Post>>? _postsSubscription;
+  StreamSubscription<List<Post>>? _issuesSubscription;
+  String? _subscribedUserId;
+  final Map<String, String?> _userVotes = {};
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userId = context.read<AuthProvider>().userId;
+    if (userId != null && userId != _subscribedUserId) {
+      _subscribedUserId = userId;
+      _postsSubscription?.cancel();
+      _issuesSubscription?.cancel();
+      _postsSubscription =
+          _postService.getUserPostsStream(userId).listen((posts) {
+        if (mounted) setState(() => _userPosts = posts);
+      });
+      _issuesSubscription =
+          _postService.getUserPostsStream(userId, type: 'issue').listen((issues) {
+        if (mounted) setState(() => _userIssues = issues);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _postsSubscription?.cancel();
+    _issuesSubscription?.cancel();
+    super.dispose();
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Future<void> _loadVoteFor(String postId, String userId) async {
+    if (_userVotes.containsKey(postId)) return;
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
+  Future<void> _handleUpvote(String postId, String userId) async {
+    await _postService.upvotePost(postId, userId);
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
+  Future<void> _handleDownvote(String postId, String userId) async {
+    await _postService.downvotePost(postId, userId);
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 获取当前用户的角色，判断是否为管理员
     final auth = context.watch<AuthProvider>();
     final bool isManagement = auth.userRole == 'management';
 
-    // 🌟 动态生成 tabs 列表
-    List<String> currentTabs = ['My Posts', 'My Issues'];
-    if (isManagement) {
-      currentTabs.add('Zone');
-    }
+    final List<String> currentTabs = ['My Posts', 'My Issues'];
+    if (isManagement) currentTabs.add('Zone');
 
     return Column(
       children: [
-        // Profile header
         _buildProfileHeader(context, auth),
-
-        // Tab toggle
         ContentTabToggle(
           selectedTab: _selectedTab,
-          tabs: currentTabs, // 🌟 使用动态生成的 tabs
+          tabs: currentTabs,
           onTabChanged: (index) {
             if (isManagement && index == 2) {
-              // 🌟 如果是管理员点击了第 3 个 Tab (Zone)，直接跳转
               context.push('/admin-zone');
             } else {
-              // 否则正常切换当前的 Tab 状态
-              setState(() {
-                _selectedTab = index;
-              });
+              setState(() => _selectedTab = index);
             }
           },
         ),
-
-        // Tab content
         Expanded(
           child: _selectedTab == 0
-              ? _buildMyPostsTab(context)
-              : _buildMyIssuesTab(context),
+              ? _buildMyPostsTab(context, auth)
+              : _buildMyIssuesTab(context, auth),
         ),
       ],
     );
   }
 
-  // 🌟 修改：接收 auth 参数，减少重复监听
   Widget _buildProfileHeader(BuildContext context, AuthProvider auth) {
     return Container(
-      color: Colors.white,
+      color: AppTheme.surfaceWhite,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Row(
         children: [
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              UserAvatar(
-                photoUrl: auth.photoUrl,
-                radius: 40,
-              ),
+              UserAvatar(photoUrl: auth.photoUrl, radius: 40),
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: const Color(0xFFE0E0E0),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: AppTheme.surfaceWhite, width: 2),
                 ),
-                child: const Icon(Icons.edit, size: 14, color: Colors.black87),
+                child: const Icon(Icons.edit,
+                    size: 14, color: AppTheme.textPrimary),
               ),
             ],
           ),
@@ -95,67 +144,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: auth.userRole == 'management'
-                            ? Colors.amber
-                            : Colors.blueGrey,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        auth.userRole.toUpperCase(),
-                        style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Debug switch
-                    InkWell(
-                      onTap: () {
-                        final newRole =
-                            auth.userRole == 'user' ? 'management' : 'user';
-                        auth.setRole(newRole);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text('Role switched to $newRole (Debug)')),
-                        );
-                      },
-                      child: const Icon(Icons.swap_horiz,
-                          size: 16, color: Colors.grey),
-                    )
-                  ],
-                ),
                 const SizedBox(height: 4),
-                Text(
-                  'Jalan Jati Perkasa',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: auth.userRole == 'management'
+                        ? Colors.amber[700]
+                        : AppTheme.primaryBlue,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    auth.userRole.toUpperCase(),
+                    style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ),
+                if (auth.email != null && auth.email!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    auth.email!,
+                    style: const TextStyle(
+                        fontSize: 13, color: AppTheme.textMeta),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _buildStat('3', 'Posts'),
+                    _buildStat('${_userPosts.length}', 'Posts'),
                     const SizedBox(width: 20),
-                    _buildStat('3', 'Issues'),
+                    _buildStat('${_userIssues.length}', 'Issues'),
                   ],
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.red),
+            icon: const Icon(Icons.logout, color: AppTheme.errorColor),
             tooltip: 'Sign Out',
             onPressed: () async {
-              // Ask for confirmation
+              final authProvider = context.read<AuthProvider>();
+              final messenger = ScaffoldMessenger.of(context);
+              final router = GoRouter.of(context);
+
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -169,25 +205,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
                       child: const Text('Sign Out',
-                          style: TextStyle(color: Colors.red)),
+                          style: TextStyle(color: AppTheme.errorColor)),
                     ),
                   ],
                 ),
               );
 
-              if (confirm == true && context.mounted) {
+              if (confirm == true) {
                 try {
                   await AuthService().signOut();
-                  if (context.mounted) {
-                    await context.read<AuthProvider>().logout();
-                    context.go('/registration');
-                  }
+                  await authProvider.logout();
+                  router.go('/registration');
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to sign out: $e')),
-                    );
-                  }
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Failed to sign out: $e')),
+                  );
                 }
               }
             },
@@ -205,206 +237,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF4A90E2),
+            color: AppTheme.primaryBlue,
           ),
         ),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(label,
+            style:
+                const TextStyle(fontSize: 12, color: AppTheme.textMeta)),
       ],
     );
   }
 
-  Widget _buildMyPostsTab(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildFeedCard(
-            context,
-            title: 'Free Herbs at Block A Garden – Take What You Need!',
-            author: 'Block A Garden',
-            timeAgo: '5 hours ago',
-            tag: 'Community Sharing',
-            tagColor: Colors.green,
-            content:
-                'Hi neighbours! The community herb garden at Block A is growing really well 🌱\n'
-                'We currently have mint, pandan, and curry leaves. Feel free to take some, just don\'t uproot the plants please 😊',
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildMyPostsTab(BuildContext context, AuthProvider auth) {
+    final userId = auth.userId;
 
-  Widget _buildMyIssuesTab(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: 'Filter by...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-            ),
-            items: const [],
-            onChanged: (value) {},
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildIssueCard(
-                context,
-                title: 'Drainage blocked at Jalan 6/7, Persiaran Tujuan',
-                date: 'First reported 25/12/2025',
-                status: 'Completed',
-                statusColor: const Color(0xFF4CAF50),
-                onTap: () {},
-              ),
-              const SizedBox(height: 12),
-              _buildIssueCard(
-                context,
-                title: 'Tree Fallen at 29, Jalan 2/12, Taman Mayang',
-                date: 'First reported 2/1/2026',
-                status: 'In Progress',
-                statusColor: Colors.amber,
-                onTap: () {},
-              ),
-              const SizedBox(height: 12),
-              _buildIssueCard(
-                context,
-                title: 'Sinkhole formed at Bukit Jalil Recreational Park',
-                date: 'First reported 1/2/2026',
-                status: 'In Progress',
-                statusColor: Colors.red,
-                onTap: () {},
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeedCard(
-    BuildContext context, {
-    required String title,
-    required String author,
-    required String timeAgo,
-    required String tag,
-    required Color tagColor,
-    required String content,
-  }) {
-    return Card(
-      elevation: 0,
-      color: Colors.grey[100],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.spa, color: Colors.green, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$author  $timeAgo',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: tagColor,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                tag,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(content, style: const TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIssueCard(
-    BuildContext context, {
-    required String title,
-    required String date,
-    required String status,
-    required Color statusColor,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      color: Colors.grey[100],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
+    if (_userPosts.isEmpty) {
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Colors.brown[700],
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      date,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-            ],
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'You have not made any posts yet.',
+            style: TextStyle(color: AppTheme.textMeta),
+            textAlign: TextAlign.center,
           ),
         ),
-      ),
+      );
+    }
+
+    if (userId != null) {
+      for (final post in _userPosts) {
+        if (post.id != null) _loadVoteFor(post.id!, userId);
+      }
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _userPosts.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final post = _userPosts[index];
+        final postId = post.id ?? '';
+        return PostCard(
+          username: auth.displayNameOrFallback,
+          location: post.location ?? 'Unknown Location',
+          timeAgo: _timeAgo(post.createdAt),
+          status: post.type == 'issue' ? post.status : null,
+          statusColor: post.status == 'Resolved'
+              ? const Color(0xFF4CAF50)
+              : AppTheme.primaryBlue,
+          title: post.title,
+          categoryIds: post.categoryIds,
+          imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
+          authorPhotoUrl: auth.photoUrl,
+          upvotes: post.upvotes,
+          downvotes: post.downvotes,
+          viewCount: post.views,
+          commentCount: post.commentCount,
+          userVote: _userVotes[postId],
+          onTap: () => (post.type == 'issue' && auth.userRole == 'management')
+              ? context.push('/issue-detail/$postId')
+              : context.push('/post-detail/$postId'),
+          onUpvote: userId != null && postId.isNotEmpty
+              ? () => _handleUpvote(postId, userId)
+              : null,
+          onDownvote: userId != null && postId.isNotEmpty
+              ? () => _handleDownvote(postId, userId)
+              : null,
+          onComment: () => (post.type == 'issue' && auth.userRole == 'management')
+              ? context.push('/issue-detail/$postId')
+              : context.push('/post-detail/$postId'),
+        );
+      },
+    );
+  }
+
+  Widget _buildMyIssuesTab(BuildContext context, AuthProvider auth) {
+    final userId = auth.userId;
+
+    if (_userIssues.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'You have not reported any issues yet.',
+            style: TextStyle(color: AppTheme.textMeta),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    if (userId != null) {
+      for (final issue in _userIssues) {
+        if (issue.id != null) _loadVoteFor(issue.id!, userId);
+      }
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _userIssues.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final issue = _userIssues[index];
+        final issueId = issue.id ?? '';
+        return PostCard(
+          username: auth.displayNameOrFallback,
+          location: issue.location ?? 'Unknown Location',
+          timeAgo: _timeAgo(issue.createdAt),
+          status: issue.status,
+          statusColor: issue.status.toLowerCase() == 'resolved' ||
+                  issue.status.toLowerCase() == 'completed'
+              ? const Color(0xFF4CAF50)
+              : AppTheme.primaryBlue,
+          title: issue.title,
+          categoryIds: issue.categoryIds,
+          imageUrl: issue.imageUrls.isNotEmpty ? issue.imageUrls.first : null,
+          authorPhotoUrl: auth.photoUrl,
+          upvotes: issue.upvotes,
+          downvotes: issue.downvotes,
+          viewCount: issue.views,
+          commentCount: issue.commentCount,
+          userVote: _userVotes[issueId],
+          onTap: issueId.isNotEmpty
+              ? () => auth.userRole == 'management'
+                  ? context.push('/issue-detail/$issueId')
+                  : context.push('/post-detail/$issueId')
+              : null,
+          onUpvote: userId != null && issueId.isNotEmpty
+              ? () => _handleUpvote(issueId, userId)
+              : null,
+          onDownvote: userId != null && issueId.isNotEmpty
+              ? () => _handleDownvote(issueId, userId)
+              : null,
+          onComment: issueId.isNotEmpty
+              ? () => auth.userRole == 'management'
+                  ? context.push('/issue-detail/$issueId')
+                  : context.push('/post-detail/$issueId')
+              : null,
+        );
+      },
     );
   }
 }

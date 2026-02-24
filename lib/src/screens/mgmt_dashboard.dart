@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../config/app_theme.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 import '../providers/auth_provider.dart';
@@ -89,10 +90,10 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = context.watch<AuthProvider>().userId;
+    final auth = context.watch<AuthProvider>();
+    final userId = auth.userId;
+    final firstName = auth.displayNameOrFallback.split(' ').first;
 
-    // 🌟 核心修改：去掉了内部的 appBar 和 bottomNavigationBar
-    // 只保留了 Scaffold 的背景色和真实的内容主体 (body)
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBF7),
       body: SingleChildScrollView(
@@ -101,12 +102,12 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Greeting section
-            const Text(
-              "Good Morning, DBKL!",
-              style: TextStyle(
+            Text(
+              'Good Morning, $firstName!',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 20),
@@ -151,7 +152,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 Row(
@@ -165,19 +166,19 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
                           height: 32,
                           margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppTheme.surfaceWhite,
                             shape: BoxShape.circle,
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black12,
                                 blurRadius: 4,
-                                offset: const Offset(0, 2),
+                                offset: Offset(0, 2),
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.chevron_left,
-                            color: Color(0xFF1E5BB8),
+                            color: AppTheme.primaryBlue,
                             size: 20,
                           ),
                         ),
@@ -190,19 +191,19 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppTheme.surfaceWhite,
                             shape: BoxShape.circle,
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black12,
                                 blurRadius: 4,
-                                offset: const Offset(0, 2),
+                                offset: Offset(0, 2),
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.chevron_right,
-                            color: Color(0xFF1E5BB8),
+                            color: AppTheme.primaryBlue,
                             size: 20,
                           ),
                         ),
@@ -265,7 +266,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
@@ -324,7 +325,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
                               : post.authorId),
                       location: post.location ?? 'Unknown Location',
                       timeAgo: _timeAgo(post.createdAt),
-                      status: post.status,
+                      status: post.type == 'issue' ? post.status : null,
                       statusColor: post.status == 'Resolved'
                           ? const Color(0xFF4CAF50)
                           : const Color(0xFF2196F3),
@@ -363,7 +364,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
@@ -410,11 +411,11 @@ class StatsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black12,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -425,7 +426,7 @@ class StatsCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: valueColor ?? Colors.black87,
+              color: valueColor ?? AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -433,7 +434,7 @@ class StatsCard extends StatelessWidget {
             title,
             style: const TextStyle(
               fontSize: 12,
-              color: Colors.black54,
+              color: AppTheme.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -461,13 +462,13 @@ class PendingIssueCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceWhite,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black12,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -479,7 +480,7 @@ class PendingIssueCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -488,7 +489,7 @@ class PendingIssueCard extends StatelessWidget {
               description,
               style: const TextStyle(
                 fontSize: 12,
-                color: Colors.black54,
+                color: AppTheme.textSecondary,
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -500,7 +501,9 @@ class PendingIssueCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: urgency.contains("Urgent") ? Colors.red : Colors.blue,
+              color: urgency.contains("Urgent")
+                  ? AppTheme.errorColor
+                  : AppTheme.primaryBlue,
             ),
           ),
         ],
@@ -526,13 +529,13 @@ class InProgressTaskCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceWhite,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black12,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -544,7 +547,7 @@ class InProgressTaskCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -552,7 +555,7 @@ class InProgressTaskCard extends StatelessWidget {
             description,
             style: const TextStyle(
               fontSize: 13,
-              color: Colors.black54,
+              color: AppTheme.textSecondary,
               height: 1.4,
             ),
           ),

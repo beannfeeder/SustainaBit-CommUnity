@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
 import '../../gemeni_service.dart';
-import '../widgets/post_card.dart';
 import '../widgets/category_tags.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
@@ -476,6 +475,36 @@ Location: ${location ?? 'Not specified'}
   }
 
   // =============================
+  // AI TYPE CLASSIFICATION
+  // =============================
+
+  /// Returns 'issue' if the content describes a problem that needs management
+  /// action, or 'post' for general community content.
+  Future<String> _classifyPostType(String title, String description) async {
+    try {
+      final prompt = '''
+You are classifying a community app submission.
+
+Post Title: $title
+Post Description: $description
+
+Decide if this is:
+- "issue": A problem report, complaint, damage, hazard, infrastructure failure, vandalism, broken facility, or anything requiring management action or repair.
+- "post": General community content — announcements, sharing, events, discussions, tips, positive news, etc.
+
+Return ONLY one word: "issue" or "post". No explanation, no punctuation.
+''';
+
+      final response = await GeminiService.generate(prompt);
+      final result = response.trim().toLowerCase();
+      return result == 'issue' ? 'issue' : 'post';
+    } catch (e) {
+      debugPrint('Error classifying post type: $e');
+      return 'post'; // safe fallback
+    }
+  }
+
+  // =============================
   // SHARE POST
   // =============================
 
@@ -492,38 +521,42 @@ Location: ${location ?? 'Not specified'}
       return;
     }
 
+    // Capture context-dependent objects before any await
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
     setState(() {
       _isCategorizing = true;
     });
 
     try {
-      // AI Categorization first
-      final categorizationResult = await _categorizePost(
-        _titleController.text.trim(),
-        _descriptionController.text.trim(),
-      );
+      final title = _titleController.text.trim();
+      final description = _descriptionController.text.trim();
+
+      // Run categorisation and type classification in parallel (both independent)
+      final firstPass = await Future.wait([
+        _categorizePost(title, description),
+        _classifyPostType(title, description),
+      ]);
+
+      final categorizationResult = firstPass[0] as Map<String, dynamic>;
+      final postType = firstPass[1] as String;
 
       final categoryIds = categorizationResult['categoryIds'] as List<String>;
-      final categoryNames = categorizationResult['categoryNames'] as Map<String, String>;
-      
+      final categoryNames =
+          categorizationResult['categoryNames'] as Map<String, String>;
+
       setState(() {
         _categoryIds = categoryIds;
         _categoryNames = categoryNames;
       });
 
       // AI Sentiment Analysis
-      final sentimentResult = await _analyzeSentiment(
-        _titleController.text.trim(),
-        _descriptionController.text.trim(),
-      );
+      final sentimentResult = await _analyzeSentiment(title, description);
 
       // AI Priority Analysis
-      final priorityResult = await _analyzePriority(
-        _titleController.text.trim(),
-        _descriptionController.text.trim(),
-        categoryIds,
-        _selectedLocation,
-      );
+      final priorityResult =
+          await _analyzePriority(title, description, categoryIds, _selectedLocation);
 
       // Upload images if any
       final postService = PostService();
@@ -533,16 +566,14 @@ Location: ${location ?? 'Not specified'}
         imageUrls = await postService.uploadImages(_uploadedFiles);
       }
 
-      // Get user auth info
-      final auth = context.read<AuthProvider>();
       if (auth.userId == null) {
         throw Exception("You must be logged in to post.");
       }
 
       // Create post object
       final post = Post(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
+        title: title,
+        description: description,
         authorId: auth.userId!,
         authorName: auth.displayNameOrFallback,
         authorRole: auth.userRole,
@@ -553,32 +584,30 @@ Location: ${location ?? 'Not specified'}
         sentiment: sentimentResult,
         priority: priorityResult,
         createdAt: DateTime.now(),
+        type: postType,
       );
 
       // Save to Firebase
       await postService.createPost(post);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Post shared with categories: ${_categoryNames.values.join(", ")}'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      final label = postType == 'issue' ? 'Issue' : 'Post';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              '$label shared with categories: ${_categoryNames.values.join(", ")}'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-        context.pop();
-      }
+      if (mounted) context.pop();
     } catch (e) {
       debugPrint("Share error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to post: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {

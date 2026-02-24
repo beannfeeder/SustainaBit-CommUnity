@@ -116,7 +116,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = context.watch<AuthProvider>().userId;
+    final auth = context.watch<AuthProvider>();
+    final userId = auth.userId;
+    final isManagement = auth.userRole == 'management';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -301,7 +303,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                         : post.authorId),
                                 location: post.location ?? 'Unknown Location',
                                 timeAgo: _timeAgo(post.createdAt),
-                                status: post.status,
+                                status: post.type == 'issue' ? post.status : null,
                                 statusColor: post.status == 'Resolved'
                                     ? const Color(0xFF4CAF50)
                                     : const Color(0xFF2196F3),
@@ -318,16 +320,18 @@ class _SearchScreenState extends State<SearchScreen> {
                                 viewCount: post.views,
                                 commentCount: post.commentCount,
                                 userVote: _userVotes[postId],
-                                onTap: () =>
-                                    context.push('/post-detail/$postId'),
+                                onTap: () => (post.type == 'issue' && isManagement)
+                                    ? context.push('/issue-detail/$postId')
+                                    : context.push('/post-detail/$postId'),
                                 onUpvote: userId != null && postId.isNotEmpty
                                     ? () => _handleUpvote(postId, userId)
                                     : null,
                                 onDownvote: userId != null && postId.isNotEmpty
                                     ? () => _handleDownvote(postId, userId)
                                     : null,
-                                onComment: () =>
-                                    context.push('/post-detail/$postId'),
+                                onComment: () => (post.type == 'issue' && isManagement)
+                                    ? context.push('/issue-detail/$postId')
+                                    : context.push('/post-detail/$postId'),
                               );
                             },
                           ),
