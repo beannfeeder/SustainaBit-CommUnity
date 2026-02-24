@@ -329,7 +329,7 @@ class _MgmtDashboardState extends State<MgmtDashboard> {
                           ? const Color(0xFF4CAF50)
                           : const Color(0xFF2196F3),
                       title: post.title,
-                      tags: const [], // Dashboard announcements probably don't need all tags shown
+                      categoryIds: post.categoryIds, // tags
                       imageUrl: post.imageUrls.isNotEmpty
                           ? post.imageUrls.first
                           : null,

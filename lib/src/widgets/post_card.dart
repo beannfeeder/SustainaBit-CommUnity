@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'user_avatar.dart';
 import '../config/app_theme.dart';
+import 'category_tags.dart';
 
 /// A Reddit-inspired post card that shows a vote bar, image, and stats.
 class PostCard extends StatelessWidget {
@@ -10,7 +11,7 @@ class PostCard extends StatelessWidget {
   final String? status;
   final Color? statusColor;
   final String title;
-  final List<PostTag> tags;
+  final List<String> categoryIds; // Category IDs to fetch from database
   final String? imageUrl;
 
   // ── Vote / stats ──────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ class PostCard extends StatelessWidget {
     this.status,
     this.statusColor,
     required this.title,
-    this.tags = const [],
+    this.categoryIds = const [],
     this.imageUrl,
     this.upvotes = 0,
     this.downvotes = 0,
@@ -147,28 +148,10 @@ class PostCard extends StatelessWidget {
             ),
 
             // ── Tags ────────────────────────────────────────────────────────
-            if (tags.isNotEmpty)
+            if (categoryIds.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: tags
-                      .map((tag) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: tag.color,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(tag.label,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600)),
-                          ))
-                      .toList(),
-                ),
+                child: CategoryTags(categoryIds: categoryIds),
               ),
 
             // ── Image ───────────────────────────────────────────────────────

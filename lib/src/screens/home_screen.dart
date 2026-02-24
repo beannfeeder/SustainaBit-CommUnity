@@ -142,7 +142,7 @@ class _PostListViewState extends State<_PostListView> {
                   ? const Color(0xFF4CAF50)
                   : const Color(0xFF2196F3),
               title: post.title,
-              tags: const [],
+              categoryIds: post.categoryIds,
               imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
               authorPhotoUrl:
                   post.authorPhotoUrl.isNotEmpty ? post.authorPhotoUrl : null,
