@@ -306,7 +306,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                     ? const Color(0xFF4CAF50)
                                     : const Color(0xFF2196F3),
                                 title: post.title,
-                                tags: const [],
+                                categoryIds: post.categoryIds,
                                 imageUrl: post.imageUrls.isNotEmpty
                                     ? post.imageUrls.first
                                     : null,

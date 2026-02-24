@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../../gemeni_service.dart';
 import '../widgets/post_card.dart';
+import '../widgets/category_tags.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 import '../providers/auth_provider.dart';
@@ -35,7 +36,8 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   bool _isEnhancing = false;
   bool _isCategorizing = false;
 
-  List<PostTag> _generatedTags = [];
+  List<String> _categoryIds = []; // Store category IDs
+  Map<String, String> _categoryNames = {}; // categoryId -> categoryName for display
 
   @override
   void initState() {
@@ -219,7 +221,7 @@ Future<void> _saveNewCategoryToDatabase(
       await docRef.set({
         'name': categoryName,
         'description': description,
-        'color': '#$colorHex',
+        'colour': '#$colorHex',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -232,7 +234,7 @@ Future<void> _saveNewCategoryToDatabase(
   }
 }
 
-Future<List<PostTag>> _categorizePost(
+Future<Map<String, dynamic>> _categorizePost(
     String title, String description) async {
   try {
     final availableCategories = await _getAvailableCategories();
@@ -264,6 +266,16 @@ IMPORTANT:
 - Set "isNew": true ONLY if category is NOT in provided list.
 - Keep description short (1 sentence).
 - Do NOT return anything except JSON.
+
+CATEGORY CREATION RULES (when creating new categories):
+- Create BROAD, GENERAL categories that can fit many scenarios.
+- AVOID overly specific or narrow categories.
+- Examples:
+  * For dating/singles events → use "Social Event" (not "Dating" or "Singles")
+  * For specific sports → use "Sports & Recreation" (not "Basketball" or "Tennis")
+  * For specific issues → use broader terms (e.g., "Infrastructure" instead of "Broken Sidewalk")
+- Think about reusability: Will this category apply to many other posts?
+- Prefer umbrella terms over specific niches.
 ''';
 
     final response = await GeminiService.generate(prompt);
@@ -278,7 +290,8 @@ IMPORTANT:
 
     final List<dynamic> categories = jsonDecode(jsonString);
 
-    final List<PostTag> tags = [];
+    final List<String> categoryIds = [];
+    final Map<String, String> categoryNames = {};
 
     for (var cat in categories) {
       final label = cat['label'] ?? 'Unknown';
@@ -287,11 +300,14 @@ IMPORTANT:
           (cat['color'] ?? '#4CAF50').toString().replaceAll('#', '');
       final isNew = cat['isNew'] ?? false;
 
-      // Create tag for UI
-      tags.add(PostTag(
-        label: label,
-        color: Color(int.parse('FF$colorHex', radix: 16)),
-      ));
+      // Generate category ID
+      final categoryId = label
+          .toLowerCase()
+          .replaceAll(' ', '_')
+          .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+
+      categoryIds.add(categoryId);
+      categoryNames[categoryId] = label;
 
       // Save new categories
       if (isNew) {
@@ -303,16 +319,17 @@ IMPORTANT:
       }
     }
 
-    return tags;
+    return {
+      'categoryIds': categoryIds,
+      'categoryNames': categoryNames,
+    };
   } catch (e) {
     debugPrint('Error categorizing post: $e');
 
-    return [
-      const PostTag(
-        label: 'Community',
-        color: Color(0xFF4CAF50),
-      ),
-    ];
+    return {
+      'categoryIds': ['community'],
+      'categoryNames': {'community': 'Community'},
+    };
   }
 }
 
@@ -388,11 +405,11 @@ Post Description: $description
   Future<Map<String, dynamic>> _analyzePriority(
     String title,
     String description,
-    List<PostTag> categories,
+    List<String> categoryIds,
     String? location,
   ) async {
     try {
-      final categoryList = categories.map((tag) => tag.label).join(', ');
+      final categoryList = categoryIds.join(', ');
 
       final prompt = '''
 You are an AI system responsible for classifying the emergency priority of community reports.
@@ -481,12 +498,18 @@ Location: ${location ?? 'Not specified'}
 
     try {
       // AI Categorization first
-      final tags = await _categorizePost(
+      final categorizationResult = await _categorizePost(
         _titleController.text.trim(),
         _descriptionController.text.trim(),
       );
 
-      _generatedTags = tags;
+      final categoryIds = categorizationResult['categoryIds'] as List<String>;
+      final categoryNames = categorizationResult['categoryNames'] as Map<String, String>;
+      
+      setState(() {
+        _categoryIds = categoryIds;
+        _categoryNames = categoryNames;
+      });
 
       // AI Sentiment Analysis
       final sentimentResult = await _analyzeSentiment(
@@ -498,7 +521,7 @@ Location: ${location ?? 'Not specified'}
       final priorityResult = await _analyzePriority(
         _titleController.text.trim(),
         _descriptionController.text.trim(),
-        tags,
+        categoryIds,
         _selectedLocation,
       );
 
@@ -526,6 +549,7 @@ Location: ${location ?? 'Not specified'}
         authorPhotoUrl: auth.photoUrl ?? '',
         location: _selectedLocation,
         imageUrls: imageUrls,
+        categoryIds: _categoryIds,
         sentiment: sentimentResult,
         priority: priorityResult,
         createdAt: DateTime.now(),
@@ -538,7 +562,7 @@ Location: ${location ?? 'Not specified'}
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Post shared with categories: ${_generatedTags.map((t) => t.label).join(", ")}'),
+                'Post shared with categories: ${_categoryNames.values.join(", ")}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -705,7 +729,7 @@ Location: ${location ?? 'Not specified'}
             const SizedBox(height: 16),
 
             // Generated Tags Display
-            if (_generatedTags.isNotEmpty) ...[
+            if (_categoryIds.isNotEmpty) ...[
               const Text(
                 'AI GENERATED CATEGORIES',
                 style: TextStyle(
@@ -716,30 +740,7 @@ Location: ${location ?? 'Not specified'}
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _generatedTags
-                    .map((tag) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tag.color,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            tag.label,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ))
-                    .toList(),
-              ),
+              CategoryTags(categoryIds: _categoryIds),
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 16),
