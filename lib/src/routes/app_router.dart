@@ -16,6 +16,11 @@ import '../screens/issue_detail_page.dart';
 import '../widgets/main_shell.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import '../screens/super_admin/kpi_monitor_screen.dart';
+import '../screens/super_admin/issue_intervention_screen.dart';
+import '../../src/screens/super_admin/ai_sentiment_screen.dart';
+import '../../src/screens/super_admin/broadcast_center_screen.dart';
+import '../../src/screens/super_admin/heatmap_dashboard_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -101,6 +106,36 @@ class AppRouter {
           return IssueDetailPage(issueId: issueId);
         },
       ),
+      
+      GoRoute(
+      path: '/issue-intervention',
+      builder: (context, state) => const IssueInterventionScreen(),
+      ),
+
+      GoRoute(
+        path: '/kpi-monitor', // 路径名字你自己定
+        name: 'kpi_monitor',
+        builder: (context, state) => const KPIMonitorScreen(),
+      ),
+
+      GoRoute(
+        path: '/ai-sentiment',
+        name: 'ai_sentiment',
+        builder: (context, state) => const AISentimentScreen(),
+      ),
+
+      GoRoute(
+        path: '/broadcast-center',
+        name: 'broadcast_center',
+        builder: (context, state) => const BroadcastCenterScreen(),
+      ),
+
+      GoRoute(
+        path: '/heatmap-dashboard',
+        name: 'heatmap_dashboard',
+        builder: (context, state) => const HeatmapDashboardScreen(),
+      ),
+
       GoRoute(path: '/settings', name: 'settings', builder: (context, state) => const SettingsScreen()),
       GoRoute(path: '/search', name: 'search', builder: (context, state) => const SearchScreen()),
       GoRoute(path: '/post-creation', builder: (context, state) => const PostCreationScreen()),

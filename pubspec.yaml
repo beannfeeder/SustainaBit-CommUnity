@@ -34,6 +34,7 @@ dependencies:
   cloud_firestore: ^6.1.2
   image_picker: ^1.2.1
   firebase_storage: ^13.0.6
+  google_maps_cluster_manager: ^3.0.0+1
   geolocator: ^14.0.2
 
 dev_dependencies:
