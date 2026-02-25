@@ -26,51 +26,27 @@ class _HomeScreenState extends State<HomeScreen> {
           onTabChanged: (index) => setState(() => _selectedTab = index),
         ),
         Expanded(
-          child: _selectedTab == 1 ? _ForumPostList() : _AnnouncementsTab(),
+          child: _selectedTab == 1
+              ? const _PostListView(postType: 'post', forumFeed: true)
+              : const _PostListView(postType: 'announcement'),
         ),
       ],
     );
   }
 }
 
-// ── Announcements tab (keeps hardcoded demo card) ─────────────────────────────
-class _AnnouncementsTab extends StatelessWidget {
+// ── Reusable Post List View for both Forum and Announcements ─────────────────────────────
+class _PostListView extends StatefulWidget {
+  final String postType;
+  final bool forumFeed;
+
+  const _PostListView({required this.postType, this.forumFeed = false});
+
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        PostCard(
-          username: 'Management',
-          location: 'Jalan Jati Perkasa',
-          timeAgo: '1 hour ago',
-          status: 'Resolved',
-          statusColor: const Color(0xFF4CAF50),
-          title: 'Large Pothole on Main Road',
-          tags: const [
-            PostTag(label: 'Emergency', color: Color(0xFFFF8A80)),
-            PostTag(label: 'Damaged Infrastructure', color: Color(0xFFFFD54F)),
-          ],
-          imageUrl: null,
-          upvotes: 9,
-          downvotes: 1,
-          viewCount: 653234,
-          commentCount: 56,
-          duplicatePostLabel: 'Duplicated Post',
-          onTap: () => context.push('/post-detail/demo'),
-        ),
-      ],
-    );
-  }
+  State<_PostListView> createState() => _PostListViewState();
 }
 
-// ── Forum tab — streams real posts from Firestore ─────────────────────────────
-class _ForumPostList extends StatefulWidget {
-  @override
-  State<_ForumPostList> createState() => _ForumPostListState();
-}
-
-class _ForumPostListState extends State<_ForumPostList> {
+class _PostListViewState extends State<_PostListView> {
   final PostService _postService = PostService();
 
   // Cache of userVote per postId so cards can render active state
@@ -104,10 +80,14 @@ class _ForumPostListState extends State<_ForumPostList> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = context.watch<AuthProvider>().userId;
+    final auth = context.watch<AuthProvider>();
+    final userId = auth.userId;
+    final isManagement = auth.userRole == 'management';
 
     return StreamBuilder<List<Post>>(
-      stream: _postService.getPostsStream(),
+      stream: widget.forumFeed
+          ? _postService.getForumStream()
+          : _postService.getPostsStream(type: widget.postType),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -118,18 +98,21 @@ class _ForumPostListState extends State<_ForumPostList> {
 
         final posts = snapshot.data ?? [];
         if (posts.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(32),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.forum_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                  const Icon(Icons.forum_outlined,
+                      size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
                   Text(
-                    'No posts yet.\nBe the first to share something!',
+                    widget.postType == 'announcement'
+                        ? 'No announcements yet.'
+                        : 'No posts yet.\nBe the first to share something!',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey, fontSize: 15),
+                    style: const TextStyle(color: Colors.grey, fontSize: 15),
                   ),
                 ],
               ),
@@ -159,12 +142,12 @@ class _ForumPostListState extends State<_ForumPostList> {
                       : post.authorId),
               location: post.location ?? 'Unknown Location',
               timeAgo: _timeAgo(post.createdAt),
-              status: post.status,
+              status: post.type == 'issue' ? post.status : null,
               statusColor: post.status == 'Resolved'
                   ? const Color(0xFF4CAF50)
                   : const Color(0xFF2196F3),
               title: post.title,
-              tags: const [],
+              categoryIds: post.categoryIds,
               imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
               authorPhotoUrl:
                   post.authorPhotoUrl.isNotEmpty ? post.authorPhotoUrl : null,
@@ -173,14 +156,18 @@ class _ForumPostListState extends State<_ForumPostList> {
               viewCount: post.views,
               commentCount: post.commentCount,
               userVote: _userVotes[postId],
-              onTap: () => context.push('/post-detail/$postId'),
+              onTap: () => (post.type == 'issue' && isManagement)
+                  ? context.push('/issue-detail/$postId')
+                  : context.push('/post-detail/$postId'),
               onUpvote: userId != null && postId.isNotEmpty
                   ? () => _handleUpvote(postId, userId)
                   : null,
               onDownvote: userId != null && postId.isNotEmpty
                   ? () => _handleDownvote(postId, userId)
                   : null,
-              onComment: () => context.push('/post-detail/$postId'),
+              onComment: () => (post.type == 'issue' && isManagement)
+                  ? context.push('/issue-detail/$postId')
+                  : context.push('/post-detail/$postId'),
             );
           },
         );

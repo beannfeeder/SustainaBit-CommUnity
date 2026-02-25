@@ -1,5 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../models/post.dart';
+import '../services/post_service.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/post_card.dart';
+import '../config/api_key.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -11,8 +18,40 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  List<String> _searchResults = [];
+  Timer? _debounce;
+
+  final PostService _postService = PostService();
+  final Map<String, String?> _userVotes = {};
+
+  List<Post> _searchResults = [];
   bool _isSearching = false;
+  bool _hasSearched = false;
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Future<void> _loadVoteFor(String postId, String userId) async {
+    if (_userVotes.containsKey(postId)) return;
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
+  Future<void> _handleUpvote(String postId, String userId) async {
+    await _postService.upvotePost(postId, userId);
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
+
+  Future<void> _handleDownvote(String postId, String userId) async {
+    await _postService.downvotePost(postId, userId);
+    final vote = await _postService.getUserVote(postId, userId);
+    if (mounted) setState(() => _userVotes[postId] = vote);
+  }
 
   @override
   void initState() {
@@ -25,38 +64,62 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
 
-  void _performSearch(String query) {
+  Future<void> _performSearch(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _hasSearched = false;
+      });
+      return;
+    }
+
     setState(() {
       _isSearching = true;
+      _hasSearched = true;
     });
 
-    // Simulate search delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _isSearching = false;
-        // Mock search results
-        if (query.isNotEmpty) {
-          _searchResults = [
-            'Large Pothole on Main Road',
-            'Broken Street Light at Park',
-            'Trash Collection Issue',
-            'Water Leak on Elm Street',
-            'Damaged Playground Equipment',
-          ].where((item) => item.toLowerCase().contains(query.toLowerCase())).toList();
-        } else {
-          _searchResults = [];
+    try {
+      final results = await _postService.searchPostsWithAI(query, geminiApiKey);
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+
+        // Preload votes if user is logged in
+        final userId = context.read<AuthProvider>().userId;
+        if (userId != null) {
+          for (final post in results) {
+            if (post.id != null) _loadVoteFor(post.id!, userId);
+          }
         }
-      });
-    });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              "AI Search failed: ${e.toString().replaceAll('Exception: ', '')}"),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final userId = auth.userId;
+    final isManagement = auth.userRole == 'management';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -117,28 +180,54 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
               onChanged: (value) {
+                if (_debounce?.isActive ?? false) _debounce!.cancel();
                 setState(() {});
+
                 if (value.isNotEmpty) {
-                  _performSearch(value);
+                  _debounce = Timer(const Duration(milliseconds: 1000), () {
+                    _performSearch(value);
+                  });
                 } else {
                   setState(() {
                     _searchResults = [];
+                    _hasSearched = false;
                   });
                 }
               },
               onSubmitted: _performSearch,
             ),
           ),
-          
+
           // Search Results
           Expanded(
             child: _isSearching
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.auto_awesome,
+                                color: Colors.amber.shade600, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "AI Semantic Search is thinking...",
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        )
+                      ],
                     ),
                   )
-                : _searchResults.isEmpty && _searchController.text.isNotEmpty
+                : _hasSearched && _searchResults.isEmpty
                     ? const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -198,65 +287,56 @@ class _SearchScreenState extends State<SearchScreen> {
                               ],
                             ),
                           )
-                        : ListView.builder(
+                        : ListView.separated(
                             padding: const EdgeInsets.all(16),
                             itemCount: _searchResults.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
                             itemBuilder: (context, index) {
-                              return _buildSearchResultCard(_searchResults[index]);
+                              final post = _searchResults[index];
+                              final postId = post.id ?? '';
+                              return PostCard(
+                                username: post.authorRole == 'management'
+                                    ? 'Management'
+                                    : (post.authorName.isNotEmpty
+                                        ? post.authorName
+                                        : post.authorId),
+                                location: post.location ?? 'Unknown Location',
+                                timeAgo: _timeAgo(post.createdAt),
+                                status: post.type == 'issue' ? post.status : null,
+                                statusColor: post.status == 'Resolved'
+                                    ? const Color(0xFF4CAF50)
+                                    : const Color(0xFF2196F3),
+                                title: post.title,
+                                categoryIds: post.categoryIds,
+                                imageUrl: post.imageUrls.isNotEmpty
+                                    ? post.imageUrls.first
+                                    : null,
+                                authorPhotoUrl: post.authorPhotoUrl.isNotEmpty
+                                    ? post.authorPhotoUrl
+                                    : null,
+                                upvotes: post.upvotes,
+                                downvotes: post.downvotes,
+                                viewCount: post.views,
+                                commentCount: post.commentCount,
+                                userVote: _userVotes[postId],
+                                onTap: () => (post.type == 'issue' && isManagement)
+                                    ? context.push('/issue-detail/$postId')
+                                    : context.push('/post-detail/$postId'),
+                                onUpvote: userId != null && postId.isNotEmpty
+                                    ? () => _handleUpvote(postId, userId)
+                                    : null,
+                                onDownvote: userId != null && postId.isNotEmpty
+                                    ? () => _handleDownvote(postId, userId)
+                                    : null,
+                                onComment: () => (post.type == 'issue' && isManagement)
+                                    ? context.push('/issue-detail/$postId')
+                                    : context.push('/post-detail/$postId'),
+                              );
                             },
                           ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResultCard(String title) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(
-            Icons.report_problem,
-            color: Color(0xFF4A90E2),
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: const Text(
-          'Community Issue • 2 hours ago',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey,
-        ),
-        onTap: () {
-          // TODO: Navigate to issue detail page
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening: $title')),
-          );
-        },
       ),
     );
   }

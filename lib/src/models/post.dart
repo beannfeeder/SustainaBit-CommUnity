@@ -10,12 +10,20 @@ class Post {
   final String authorPhotoUrl; // Google profile photo
   final String? location;
   final List<String> imageUrls;
+  final List<String> categoryIds; // IDs of categories from categories collection
+  final Map<String, dynamic>? sentiment;
+  final Map<String, dynamic>? priority;
   final DateTime createdAt;
   final int upvotes;
   final int downvotes;
   final int views;
   final int commentCount;
   final String status;
+  final String type; // 'post' or 'announcement'
+  final String? verificationStatus; // 'verified' | 'partial' | 'insufficient' | 'rejected'
+  final String? verificationId; // Reference to proof_verifications collection
+  final DateTime? verifiedAt;
+  final List<String> proofImageUrls; // Uploaded proof-of-work images
 
   Post({
     this.id,
@@ -27,12 +35,20 @@ class Post {
     this.authorPhotoUrl = '',
     this.location,
     this.imageUrls = const [],
+    this.categoryIds = const [],
+    this.sentiment,
+    this.priority,
     required this.createdAt,
     this.upvotes = 0,
     this.downvotes = 0,
     this.views = 0,
     this.commentCount = 0,
     this.status = 'Open',
+    this.type = 'post',
+    this.verificationStatus,
+    this.verificationId,
+    this.verifiedAt,
+    this.proofImageUrls = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -45,12 +61,20 @@ class Post {
       'authorPhotoUrl': authorPhotoUrl,
       'location': location,
       'imageUrls': imageUrls,
+      'categoryIds': categoryIds,
+      'sentiment': sentiment,
+      'priority': priority,
       'createdAt': Timestamp.fromDate(createdAt),
       'upvotes': upvotes,
       'downvotes': downvotes,
       'views': views,
       'commentCount': commentCount,
       'status': status,
+      'type': type,
+      'verificationStatus': verificationStatus,
+      'verificationId': verificationId,
+      'verifiedAt': verifiedAt != null ? Timestamp.fromDate(verifiedAt!) : null,
+      'proofImageUrls': proofImageUrls,
     };
   }
 
@@ -66,12 +90,22 @@ class Post {
       authorPhotoUrl: data['authorPhotoUrl'] ?? '',
       location: data['location'],
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
+      categoryIds: List<String>.from(data['categoryIds'] ?? []),
+      sentiment: data['sentiment'] as Map<String, dynamic>?,
+      priority: data['priority'] as Map<String, dynamic>?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       upvotes: data['upvotes'] ?? data['likes'] ?? 0, // backwards compat
       downvotes: data['downvotes'] ?? 0,
       views: data['views'] ?? 0,
       commentCount: data['commentCount'] ?? 0,
       status: data['status'] ?? 'Open',
+      type: data['type'] ?? 'post',
+      verificationStatus: data['verificationStatus'],
+      verificationId: data['verificationId'],
+      verifiedAt: data['verifiedAt'] != null
+          ? (data['verifiedAt'] as Timestamp).toDate()
+          : null,
+      proofImageUrls: List<String>.from(data['proofImageUrls'] ?? []),
     );
   }
 }

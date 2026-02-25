@@ -29,8 +29,9 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     await _storageService.setIsLoggedIn(true);
     await _storageService.setUserId(newUserId);
-    if (role != null)
+    if (role != null) {
       await _storageService.setUserRole(role); // only overwrite if explicit
+    }
     if (displayName != null) await _storageService.setDisplayName(displayName);
     if (email != null) await _storageService.setEmail(email);
     if (photoUrl != null) await _storageService.setPhotoUrl(photoUrl);
@@ -42,9 +43,4 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Admin-only action: change a user's role locally
-  Future<void> setRole(String role) async {
-    await _storageService.setUserRole(role);
-    notifyListeners();
-  }
 }

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
 import '../models/post.dart';
 import '../models/comment.dart';
 
@@ -13,13 +15,41 @@ class PostService {
 
   // ── Read ────────────────────────────────────────────────────────────────────
 
-  /// Real-time stream of all posts, newest first.
-  Stream<List<Post>> getPostsStream() {
+  /// Real-time stream of all posts of a specific type ('post' or 'announcement'), newest first.
+  Stream<List<Post>> getPostsStream({String type = 'post'}) {
     return _firestore
         .collection(_collectionName)
+        .where('type', isEqualTo: type)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
+  }
+
+  /// Real-time stream for the community forum — includes both regular posts
+  /// and user-reported issues so issues appear in the feed with their status badge.
+  Stream<List<Post>> getForumStream() {
+    return _firestore
+        .collection(_collectionName)
+        .where('type', whereIn: ['post', 'issue'])
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
+  }
+
+  /// Real-time stream of posts authored by a specific user, newest first.
+  /// Sorting is done client-side to avoid requiring a composite Firestore index
+  /// on (authorId, type, createdAt).
+  Stream<List<Post>> getUserPostsStream(String userId, {String type = 'post'}) {
+    return _firestore
+        .collection(_collectionName)
+        .where('authorId', isEqualTo: userId)
+        .where('type', isEqualTo: type)
+        .snapshots()
+        .map((snapshot) {
+      final posts = snapshot.docs.map(Post.fromFirestore).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
+    });
   }
 
   /// Fetch a single post by document ID.
@@ -38,6 +68,79 @@ class PostService {
         .orderBy('createdAt')
         .snapshots()
         .map((s) => s.docs.map(Comment.fromFirestore).toList());
+  }
+
+  /// AI Semantic Search over posts using Gemini
+  Future<List<Post>> searchPostsWithAI(String query, String apiKey) async {
+    try {
+      if (apiKey.isEmpty || apiKey == 'YOUR_API_KEY_HERE') {
+        throw Exception(
+            "Please provide a valid Gemini API Key in lib/src/config/api_key.dart");
+      }
+
+      // 1. Fetch recent posts and issues (limit to 100 to avoid huge prompt payloads)
+      final snapshot = await _firestore
+          .collection(_collectionName)
+          .where('type', whereIn: ['post', 'issue'])
+          .orderBy('createdAt', descending: true)
+          .limit(100)
+          .get();
+
+      if (snapshot.docs.isEmpty) return [];
+
+      final posts =
+          snapshot.docs.map((doc) => Post.fromFirestore(doc)).toList();
+
+      // 2. Prepare a minimized JSON payload for the prompt
+      final postsJson = posts
+          .map((p) => {
+                'id': p.id,
+                'title': p.title,
+                'description': p.description,
+                'location': p.location,
+              })
+          .toList();
+
+      // 3. Setup Gemini Generative Model
+      final model = GenerativeModel(
+        model: 'gemini-3-flash-preview',
+        apiKey: apiKey,
+        generationConfig:
+            GenerationConfig(responseMimeType: "application/json"),
+      );
+
+      // 4. Create the prompt instructing the AI to act as a search engine
+      final prompt = '''
+You are a highly intelligent semantic search engine for a community reporting app.
+Below is a JSON array of recent community posts.
+
+Posts:
+${jsonEncode(postsJson)}
+
+User's Search Query: "$query"
+
+Your job is to analyze the user's search query and find all the posts that semantically match or are highly relevant to what the user is asking.
+Return ONLY a JSON array of strings containing the 'id's of the matching posts. If no posts match, return an empty array [].
+Do NOT return anything except the JSON array.
+''';
+
+      // 5. Query Gemini
+      final response = await model.generateContent([Content.text(prompt)]);
+      final text = response.text;
+
+      if (text == null || text.isEmpty) return [];
+
+      // 6. Parse response
+      final List<dynamic> matchedIds = jsonDecode(text);
+      final Set<String> matchedIdSet =
+          matchedIds.map((e) => e.toString()).toSet();
+
+      // 7. Filter and return the full Post objects
+      return posts.where((p) => matchedIdSet.contains(p.id)).toList();
+    } catch (e) {
+      debugPrint("Error in AI Search: $e");
+      rethrow;
+    }
   }
 
   // ── Write ───────────────────────────────────────────────────────────────────
@@ -154,6 +257,32 @@ class PostService {
         .doc(userId)
         .get();
     return doc.exists ? doc['type'] as String? : null;
+  }
+
+  /// Real-time stream for a single post/issue document.
+  Stream<Post?> getPostStream(String postId) {
+    return _firestore
+        .collection(_collectionName)
+        .doc(postId)
+        .snapshots()
+        .map((doc) => doc.exists ? Post.fromFirestore(doc) : null);
+  }
+
+  /// Update the status field of an issue.
+  Future<void> updateIssueStatus(String postId, String status) async {
+    await _firestore.collection(_collectionName).doc(postId).update({
+      'status': status,
+    });
+  }
+
+  /// Upload proof images, save their URLs to the issue, and mark it Resolved.
+  Future<void> submitProofOfWork(
+      String postId, List<XFile> images) async {
+    final urls = await uploadImages(images);
+    await _firestore.collection(_collectionName).doc(postId).update({
+      'status': 'Resolved',
+      'proofImageUrls': urls,
+    });
   }
 
   /// Increment view count once per screen visit.

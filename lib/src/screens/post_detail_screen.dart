@@ -6,6 +6,7 @@ import '../models/comment.dart';
 import '../providers/auth_provider.dart';
 import '../services/post_service.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/category_tags.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final String postId;
@@ -253,7 +254,7 @@ class _PostHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              _StatusBadge(status: post.status),
+              if (post.type == 'issue') _StatusBadge(status: post.status),
             ],
           ),
           const SizedBox(height: 16),
@@ -262,6 +263,11 @@ class _PostHeader extends StatelessWidget {
                   color: Colors.black,
                   fontSize: 20,
                   fontWeight: FontWeight.bold)),
+          // Category Tags
+          if (post.categoryIds.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            CategoryTags(categoryIds: post.categoryIds),
+          ],
           const SizedBox(height: 12),
           Text(post.description,
               style: TextStyle(
