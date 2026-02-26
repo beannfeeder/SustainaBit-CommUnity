@@ -25,6 +25,7 @@ class PostService {
         .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
   }
 
+  /// 修改：在客户端过滤掉被标记为重复的帖子 (isDuplicate != true)
   /// Real-time stream for the community forum — includes both regular posts
   /// and user-reported issues so issues appear in the feed with their status badge.
   Stream<List<Post>> getForumStream() {
@@ -33,7 +34,11 @@ class PostService {
         .where('type', whereIn: ['post', 'issue'])
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
+        .map((snapshot) {
+      final allPosts = snapshot.docs.map(Post.fromFirestore).toList();
+      // 过滤掉重复帖
+      return allPosts.where((post) => post.isDuplicate != true).toList();
+    });
   }
 
   /// Real-time stream of posts authored by a specific user, newest first.
@@ -145,12 +150,88 @@ Do NOT return anything except the JSON array.
 
   // ── Write ───────────────────────────────────────────────────────────────────
 
-  /// Create a post document in Firestore.
-  Future<String> createPost(Post post) async {
+  /// 新增：获取最近 48 小时内的候选帖子 (初步过滤，节省 AI Token)
+  Future<List<Post>> _getPotentialDuplicates(DateTime time, String? location) async {
+    final timeWindow = time.subtract(const Duration(hours: 48));
+    final querySnapshot = await _firestore
+        .collection(_collectionName)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(timeWindow))
+        .where('isDuplicate', isEqualTo: false) // 只和原贴比较
+        .get();
+
+    List<Post> candidates = querySnapshot.docs.map((doc) => Post.fromFirestore(doc)).toList();
+
+    // 如果 location 是精确字符串，在这里进一步过滤
+    if (location != null && location.isNotEmpty) {
+      candidates = candidates.where((p) => p.location == location).toList();
+    }
+    return candidates;
+  }
+
+  /// 新增：调用 Gemini 判断是否为重复问题
+  Future<String?> _checkDuplicateWithAI(Post newPost, List<Post> candidates, String apiKey) async {
+    final model = GenerativeModel(
+      model: 'gemini-3-flash-preview', 
+      apiKey: apiKey,
+    );
+
+    // 精简发送给 AI 的数据
+    final candidatesJson = candidates.map((p) => {
+      'id': p.id,
+      'title': p.title,
+      'description': p.description,
+      'location': p.location,
+    }).toList();
+
+    final prompt = '''
+You are an AI assistant for a community reporting app.
+A user is trying to post a new issue:
+Title: "${newPost.title}"
+Description: "${newPost.description}"
+Location: "${newPost.location}"
+
+Here are recent existing issues in the same area:
+${jsonEncode(candidatesJson)}
+
+Check if the new issue is describing the EXACT SAME physical event or problem as any of the existing issues.
+If it is the same, return ONLY the 'id' of the matching existing issue.
+If it is a different issue, return the exact word "NONE".
+Do NOT return any other text.
+''';
+
+    final response = await model.generateContent([Content.text(prompt)]);
+    final text = response.text?.trim() ?? 'NONE';
+
+    if (text != 'NONE' && text.isNotEmpty) {
+      return text; // 返回原贴的 ID
+    }
+    return null;
+  }
+
+  /// 修改：升级版的 createPost (包含 AI 自动排重逻辑)
+  Future<String> createPost(Post post, {String? apiKey}) async {
     try {
+      Map<String, dynamic> postData = post.toMap();
+
+      // 如果传入了 apiKey，则执行 AI 排重检查
+      if (apiKey != null && apiKey.isNotEmpty && apiKey != 'YOUR_API_KEY_HERE') {
+        final candidates = await _getPotentialDuplicates(post.createdAt, post.location);
+
+        if (candidates.isNotEmpty) {
+          final duplicateId = await _checkDuplicateWithAI(post, candidates, apiKey);
+
+          if (duplicateId != null) {
+            // AI 判定为重复帖！修改准备存入数据库的 Map
+            postData['isDuplicate'] = true;
+            postData['originalPostId'] = duplicateId;
+            debugPrint("🤖 Gemini 判定为重复问题！已关联原贴 ID: $duplicateId");
+          }
+        }
+      }
+
       final docRef = await _firestore
           .collection(_collectionName)
-          .add(post.toMap())
+          .add(postData)
           .timeout(
             const Duration(seconds: 15),
             onTimeout: () => throw Exception(

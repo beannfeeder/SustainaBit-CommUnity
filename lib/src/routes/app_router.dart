@@ -17,6 +17,11 @@ import '../screens/issue_detail_page.dart';
 import '../widgets/main_shell.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import '../screens/super_admin/kpi_monitor_screen.dart';
+import '../screens/super_admin/issue_intervention_screen.dart';
+import '../../src/screens/super_admin/ai_sentiment_screen.dart';
+import '../../src/screens/super_admin/broadcast_center_screen.dart';
+import '../../src/screens/super_admin/heatmap_dashboard_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(

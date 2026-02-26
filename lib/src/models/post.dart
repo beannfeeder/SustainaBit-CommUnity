@@ -24,6 +24,11 @@ class Post {
   final String? verificationId; // Reference to proof_verifications collection
   final DateTime? verifiedAt;
   final List<String> proofImageUrls; // Uploaded proof-of-work images
+  
+  // 👇 --- 新增的排重功能字段 --- 👇
+  final bool isDuplicate;
+  final String? originalPostId;
+  // 👆 --------------------------- 👆
 
   Post({
     this.id,
@@ -49,6 +54,10 @@ class Post {
     this.verificationId,
     this.verifiedAt,
     this.proofImageUrls = const [],
+    
+    // 👇 新增字段的默认值
+    this.isDuplicate = false,
+    this.originalPostId,
   });
 
   Map<String, dynamic> toMap() {
@@ -75,6 +84,10 @@ class Post {
       'verificationId': verificationId,
       'verifiedAt': verifiedAt != null ? Timestamp.fromDate(verifiedAt!) : null,
       'proofImageUrls': proofImageUrls,
+      
+      // 👇 将新字段写入 Firebase
+      'isDuplicate': isDuplicate,
+      'originalPostId': originalPostId,
     };
   }
 
@@ -106,6 +119,10 @@ class Post {
           ? (data['verifiedAt'] as Timestamp).toDate()
           : null,
       proofImageUrls: List<String>.from(data['proofImageUrls'] ?? []),
+      
+      // 👇 从 Firebase 读取新字段，如果旧数据没有这个字段就给默认值
+      isDuplicate: data['isDuplicate'] ?? false,
+      originalPostId: data['originalPostId'],
     );
   }
 }

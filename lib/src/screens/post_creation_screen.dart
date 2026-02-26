@@ -4,14 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../gemeni_service.dart';
+import '../../gemini_config.dart'; // 👈 引入了你的 API Key 配置文件
 import '../widgets/category_tags.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 import '../providers/auth_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PostCreationScreen extends StatefulWidget {
   const PostCreationScreen({super.key});
@@ -172,77 +173,70 @@ Return only the enhanced description text, nothing else.''';
   }
 
   // =============================
-  // AI CATEGORIZE
-  // =============================
-
-  // =============================
   // FIRESTORE CATEGORY INTEGRATION
   // =============================
 
   Future<List<Map<String, dynamic>>> _getAvailableCategories() async {
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('categories')
-        .get();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('categories')
+          .get();
 
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      return {
-        'name': data['name'] ?? '',
-        'description': data['description'] ?? '',
-      };
-    }).toList();
-  } catch (e) {
-    debugPrint('Error fetching categories: $e');
-    return [];
-  }
-}
-
-Future<void> _saveNewCategoryToDatabase(
-  String categoryName,
-  String colorHex,
-  String description,
-) async {
-  try {
-    // 🔥 Sanitize document ID
-    final docId = categoryName
-        .toLowerCase()
-        .replaceAll(' ', '_')
-        .replaceAll(RegExp(r'[^a-z0-9_]'), '');
-
-    final docRef =
-        FirebaseFirestore.instance.collection('categories').doc(docId);
-
-    final existingDoc = await docRef.get();
-
-    // Prevent duplicate creation
-    if (!existingDoc.exists) {
-      await docRef.set({
-        'name': categoryName,
-        'description': description,
-        'colour': '#$colorHex',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      debugPrint('New category saved: $categoryName');
-    } else {
-      debugPrint('Category already exists: $categoryName');
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'name': data['name'] ?? '',
+          'description': data['description'] ?? '',
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+      return [];
     }
-  } catch (e) {
-    debugPrint('Error saving category: $e');
   }
-}
 
-Future<Map<String, dynamic>> _categorizePost(
-    String title, String description) async {
-  try {
-    final availableCategories = await _getAvailableCategories();
+  Future<void> _saveNewCategoryToDatabase(
+    String categoryName,
+    String colorHex,
+    String description,
+  ) async {
+    try {
+      final docId = categoryName
+          .toLowerCase()
+          .replaceAll(' ', '_')
+          .replaceAll(RegExp(r'[^a-z0-9_]'), '');
 
-    final categoryList = availableCategories
-        .map((cat) => '- ${cat['name']} (${cat['description']})')
-        .join('\n');
+      final docRef =
+          FirebaseFirestore.instance.collection('categories').doc(docId);
 
-    final prompt = '''
+      final existingDoc = await docRef.get();
+
+      if (!existingDoc.exists) {
+        await docRef.set({
+          'name': categoryName,
+          'description': description,
+          'colour': '#$colorHex',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        debugPrint('New category saved: $categoryName');
+      } else {
+        debugPrint('Category already exists: $categoryName');
+      }
+    } catch (e) {
+      debugPrint('Error saving category: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> _categorizePost(
+      String title, String description) async {
+    try {
+      final availableCategories = await _getAvailableCategories();
+
+      final categoryList = availableCategories
+          .map((cat) => '- ${cat['name']} (${cat['description']})')
+          .join('\n');
+
+      final prompt = '''
 You are an AI that categorizes community posts.
 
 Post Title: $title
@@ -277,60 +271,55 @@ CATEGORY CREATION RULES (when creating new categories):
 - Prefer umbrella terms over specific niches.
 ''';
 
-    final response = await GeminiService.generate(prompt);
+      final response = await GeminiService.generate(prompt);
 
-    String jsonString = response.trim();
+      String jsonString = response.trim();
+      jsonString = jsonString
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
 
-    // Remove markdown formatting if present
-    jsonString = jsonString
-        .replaceAll('```json', '')
-        .replaceAll('```', '')
-        .trim();
+      final List<dynamic> categories = jsonDecode(jsonString);
 
-    final List<dynamic> categories = jsonDecode(jsonString);
+      final List<String> categoryIds = [];
+      final Map<String, String> categoryNames = {};
 
-    final List<String> categoryIds = [];
-    final Map<String, String> categoryNames = {};
+      for (var cat in categories) {
+        final label = cat['label'] ?? 'Unknown';
+        final descriptionText = cat['description'] ?? '';
+        final colorHex =
+            (cat['color'] ?? '#4CAF50').toString().replaceAll('#', '');
+        final isNew = cat['isNew'] ?? false;
 
-    for (var cat in categories) {
-      final label = cat['label'] ?? 'Unknown';
-      final descriptionText = cat['description'] ?? '';
-      final colorHex =
-          (cat['color'] ?? '#4CAF50').toString().replaceAll('#', '');
-      final isNew = cat['isNew'] ?? false;
+        final categoryId = label
+            .toLowerCase()
+            .replaceAll(' ', '_')
+            .replaceAll(RegExp(r'[^a-z0-9_]'), '');
 
-      // Generate category ID
-      final categoryId = label
-          .toLowerCase()
-          .replaceAll(' ', '_')
-          .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+        categoryIds.add(categoryId);
+        categoryNames[categoryId] = label;
 
-      categoryIds.add(categoryId);
-      categoryNames[categoryId] = label;
-
-      // Save new categories
-      if (isNew) {
-        await _saveNewCategoryToDatabase(
-          label,
-          colorHex,
-          descriptionText,
-        );
+        if (isNew) {
+          await _saveNewCategoryToDatabase(
+            label,
+            colorHex,
+            descriptionText,
+          );
+        }
       }
+
+      return {
+        'categoryIds': categoryIds,
+        'categoryNames': categoryNames,
+      };
+    } catch (e) {
+      debugPrint('Error categorizing post: $e');
+      return {
+        'categoryIds': ['community'],
+        'categoryNames': {'community': 'Community'},
+      };
     }
-
-    return {
-      'categoryIds': categoryIds,
-      'categoryNames': categoryNames,
-    };
-  } catch (e) {
-    debugPrint('Error categorizing post: $e');
-
-    return {
-      'categoryIds': ['community'],
-      'categoryNames': {'community': 'Community'},
-    };
   }
-}
 
   // =============================
   // AI SENTIMENT ANALYSIS
@@ -366,8 +355,6 @@ Post Description: $description
       final response = await GeminiService.generate(prompt);
 
       String jsonString = response.trim();
-
-      // Remove markdown formatting if present
       jsonString = jsonString
           .replaceAll('```json', '')
           .replaceAll('```', '')
@@ -375,7 +362,6 @@ Post Description: $description
 
       final Map<String, dynamic> sentiment = jsonDecode(jsonString);
 
-      // Validate required fields
       if (!sentiment.containsKey('label') ||
           !sentiment.containsKey('score') ||
           !sentiment.containsKey('confidence') ||
@@ -386,8 +372,6 @@ Post Description: $description
       return sentiment;
     } catch (e) {
       debugPrint('Error analyzing sentiment: $e');
-
-      // Fallback to neutral sentiment
       return {
         'label': 'neutral',
         'score': 0.0,
@@ -443,8 +427,6 @@ Location: ${location ?? 'Not specified'}
       final response = await GeminiService.generate(prompt);
 
       String jsonString = response.trim();
-
-      // Remove markdown formatting if present
       jsonString = jsonString
           .replaceAll('```json', '')
           .replaceAll('```', '')
@@ -452,7 +434,6 @@ Location: ${location ?? 'Not specified'}
 
       final Map<String, dynamic> priority = jsonDecode(jsonString);
 
-      // Validate required fields
       if (!priority.containsKey('level') ||
           !priority.containsKey('score') ||
           !priority.containsKey('reason') ||
@@ -463,8 +444,6 @@ Location: ${location ?? 'Not specified'}
       return priority;
     } catch (e) {
       debugPrint('Error analyzing priority: $e');
-
-      // Fallback to none priority
       return {
         'level': 'none',
         'score': 0,
@@ -478,8 +457,6 @@ Location: ${location ?? 'Not specified'}
   // AI TYPE CLASSIFICATION
   // =============================
 
-  /// Returns 'issue' if the content describes a problem that needs management
-  /// action, or 'post' for general community content.
   Future<String> _classifyPostType(String title, String description) async {
     try {
       final prompt = '''
@@ -500,7 +477,7 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
       return result == 'issue' ? 'issue' : 'post';
     } catch (e) {
       debugPrint('Error classifying post type: $e');
-      return 'post'; // safe fallback
+      return 'post';
     }
   }
 
@@ -521,7 +498,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
       return;
     }
 
-    // Capture context-dependent objects before any await
     final auth = context.read<AuthProvider>();
     final messenger = ScaffoldMessenger.of(context);
 
@@ -533,7 +509,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
       final title = _titleController.text.trim();
       final description = _descriptionController.text.trim();
 
-      // Run categorisation and type classification in parallel (both independent)
       final firstPass = await Future.wait([
         _categorizePost(title, description),
         _classifyPostType(title, description),
@@ -551,14 +526,10 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
         _categoryNames = categoryNames;
       });
 
-      // AI Sentiment Analysis
       final sentimentResult = await _analyzeSentiment(title, description);
-
-      // AI Priority Analysis
       final priorityResult =
           await _analyzePriority(title, description, categoryIds, _selectedLocation);
 
-      // Upload images if any
       final postService = PostService();
       List<String> imageUrls = [];
 
@@ -570,7 +541,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
         throw Exception("You must be logged in to post.");
       }
 
-      // Create post object
       final post = Post(
         title: title,
         description: description,
@@ -587,8 +557,8 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
         type: postType,
       );
 
-      // Save to Firebase
-      await postService.createPost(post);
+      // 🚀 核心修复：调用 Gemini 进行自动排重
+      await postService.createPost(post, apiKey: geminiApiKey);
 
       final label = postType == 'issue' ? 'Issue' : 'Post';
       messenger.showSnackBar(
@@ -646,7 +616,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title Field
             const Text(
               'TITLE',
               style: TextStyle(
@@ -678,8 +647,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
               ),
             ),
             const SizedBox(height: 24),
-
-            // Description Field
             const Text(
               'DESCRIPTION',
               style: TextStyle(
@@ -756,8 +723,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
               ),
             ),
             const SizedBox(height: 16),
-
-            // Generated Tags Display
             if (_categoryIds.isNotEmpty) ...[
               const Text(
                 'AI GENERATED CATEGORIES',
@@ -773,24 +738,18 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 16),
-
-            // Add Location Option
             _buildOptionRow(
               icon: Icons.location_on_outlined,
               title: _selectedLocation ?? 'Add location',
               onTap: () => _showLocationPicker(context),
             ),
             const SizedBox(height: 16),
-
-            // Upload Option
             _buildOptionRow(
               icon: Icons.attach_file,
               title: 'Upload',
               onTap: () => _showUploadOptions(context),
             ),
             const SizedBox(height: 40),
-
-            // Share Button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -871,10 +830,6 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
       ),
     );
   }
-
-  // =============================
-  // LOCATION & UPLOAD DIALOGS
-  // =============================
 
   void _showLocationPicker(BuildContext context) async {
     final selectedStr = await showModalBottomSheet<String>(
