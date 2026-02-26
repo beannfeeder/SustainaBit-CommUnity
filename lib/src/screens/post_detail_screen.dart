@@ -261,8 +261,12 @@ class _DuplicateBanner extends StatelessWidget {
             onPressed: () {
               // 👉 提示：这里的路由地址如果跟你 app_router.dart 里的不同，请自行修改！
               // 这里假设你的详情页路由长得像 /issue/123 或 /post/123
-              context.push('/post/$originalPostId');
+                context.pushNamed(
+                'post-detail',
+                pathParameters: {'postId': originalPostId},
+              );
             },
+            
             child: const Text('View Original'),
           ),
         ],
