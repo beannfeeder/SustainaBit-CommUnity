@@ -143,6 +143,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
+                  // 👇 新增：如果这是重复贴，展示跳转横幅
+                  if (post.isDuplicate && post.originalPostId != null)
+                    _DuplicateBanner(originalPostId: post.originalPostId!),
+                  
                   _PostHeader(post: post, timeAgo: _timeAgo(post.createdAt)),
                   _VoteBar(
                     post: post,
@@ -209,6 +213,64 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 // ────────────────────────────────────────────────────────────────────────────
 // Sub-widgets
 // ────────────────────────────────────────────────────────────────────────────
+
+// 👇 新增的横幅组件
+class _DuplicateBanner extends StatelessWidget {
+  final String originalPostId;
+  const _DuplicateBanner({required this.originalPostId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Duplicate Report',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'This issue has already been reported by someone else.',
+                  style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade600,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            onPressed: () {
+              // 👉 提示：这里的路由地址如果跟你 app_router.dart 里的不同，请自行修改！
+              // 这里假设你的详情页路由长得像 /issue/123 或 /post/123
+              context.push('/post/$originalPostId');
+            },
+            child: const Text('View Original'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+// 👆 --------------------
 
 class _PostHeader extends StatelessWidget {
   final Post post;

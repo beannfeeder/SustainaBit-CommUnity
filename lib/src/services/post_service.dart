@@ -25,6 +25,7 @@ class PostService {
         .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
   }
 
+  /// 修改：在客户端过滤掉被标记为重复的帖子 (isDuplicate != true)
   /// Real-time stream for the community forum — includes both regular posts
   /// and user-reported issues so issues appear in the feed with their status badge.
   Stream<List<Post>> getForumStream() {
@@ -33,7 +34,11 @@ class PostService {
         .where('type', whereIn: ['post', 'issue'])
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map(Post.fromFirestore).toList());
+        .map((snapshot) {
+      final allPosts = snapshot.docs.map(Post.fromFirestore).toList();
+      // 过滤掉重复帖
+      return allPosts.where((post) => post.isDuplicate != true).toList();
+    });
   }
 
   /// Real-time stream of posts authored by a specific user, newest first.
