@@ -616,6 +616,296 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
       }
     }
   }
+}
+
+  // =============================
+  // AI SENTIMENT ANALYSIS
+  // =============================
+
+  Future<Map<String, dynamic>> _analyzeSentiment(
+    String title,
+    String description,
+  ) async {
+    try {
+      final prompt = '''
+You are performing sentiment analysis on a community post.
+
+Return ONLY valid JSON in this exact format:
+
+{
+  "label": "positive | neutral | negative",
+  "score": number between -1.0 and 1.0,
+  "confidence": number between 0.0 and 1.0,
+  "severity": "low | medium | high"
+}
+
+Rules:
+- Do NOT include explanations.
+- Do NOT include markdown formatting.
+- Do NOT include extra text.
+- Output JSON only.
+
+Post Title: $title
+Post Description: $description
+''';
+
+      final response = await GeminiService.generate(prompt);
+
+      String jsonString = response.trim();
+
+      // Remove markdown formatting if present
+      jsonString = jsonString
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
+
+      final Map<String, dynamic> sentiment = jsonDecode(jsonString);
+
+      // Validate required fields
+      if (!sentiment.containsKey('label') ||
+          !sentiment.containsKey('score') ||
+          !sentiment.containsKey('confidence') ||
+          !sentiment.containsKey('severity')) {
+        throw Exception('Invalid sentiment response structure');
+      }
+
+      return sentiment;
+    } catch (e) {
+      debugPrint('Error analyzing sentiment: $e');
+
+      // Fallback to neutral sentiment
+      return {
+        'label': 'neutral',
+        'score': 0.0,
+        'confidence': 0.0,
+        'severity': 'low',
+      };
+    }
+  }
+
+  // =============================
+  // AI PRIORITY ANALYSIS
+  // =============================
+
+  Future<Map<String, dynamic>> _analyzePriority(
+    String title,
+    String description,
+    List<String> categoryIds,
+    String? location,
+  ) async {
+    try {
+      final categoryList = categoryIds.join(', ');
+
+      final prompt = '''
+You are an AI system responsible for classifying the emergency priority of community reports.
+
+Your job is to determine how urgently management should respond.
+
+Return ONLY valid JSON in this format:
+
+{
+  "level": "none | low | medium | high | critical",
+  "score": integer between 0 and 100,
+  "reason": "Short explanation (max 1 sentence)",
+  "confidence": number between 0.0 and 1.0
+}
+
+Guidelines:
+- "critical" = Immediate danger to life, major property damage, safety hazards.
+- "high" = Serious issue that requires urgent attention within 24 hours.
+- "medium" = Important but not urgent.
+- "low" = Minor inconvenience.
+- "none" = Informational or positive post.
+
+Do NOT include explanations outside JSON.
+Do NOT include markdown formatting.
+
+Post Title: $title
+Post Description: $description
+Post Category: $categoryList
+Location: ${location ?? 'Not specified'}
+''';
+
+      final response = await GeminiService.generate(prompt);
+
+      String jsonString = response.trim();
+
+      // Remove markdown formatting if present
+      jsonString = jsonString
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
+
+      final Map<String, dynamic> priority = jsonDecode(jsonString);
+
+      // Validate required fields
+      if (!priority.containsKey('level') ||
+          !priority.containsKey('score') ||
+          !priority.containsKey('reason') ||
+          !priority.containsKey('confidence')) {
+        throw Exception('Invalid priority response structure');
+      }
+
+      return priority;
+    } catch (e) {
+      debugPrint('Error analyzing priority: $e');
+
+      // Fallback to none priority
+      return {
+        'level': 'none',
+        'score': 0,
+        'reason': 'Unable to determine priority',
+        'confidence': 0.0,
+      };
+    }
+  }
+
+  // =============================
+  // AI TYPE CLASSIFICATION
+  // =============================
+
+  /// Returns 'issue' if the content describes a problem that needs management
+  /// action, or 'post' for general community content.
+  Future<String> _classifyPostType(String title, String description) async {
+    try {
+      final prompt = '''
+You are classifying a community app submission.
+
+Post Title: $title
+Post Description: $description
+
+Decide if this is:
+- "issue": A problem report, complaint, damage, hazard, infrastructure failure, vandalism, broken facility, or anything requiring management action or repair.
+- "post": General community content — announcements, sharing, events, discussions, tips, positive news, etc.
+
+Return ONLY one word: "issue" or "post". No explanation, no punctuation.
+''';
+
+      final response = await GeminiService.generate(prompt);
+      final result = response.trim().toLowerCase();
+      return result == 'issue' ? 'issue' : 'post';
+    } catch (e) {
+      debugPrint('Error classifying post type: $e');
+      return 'post'; // safe fallback
+    }
+  }
+
+  // =============================
+  // SHARE POST
+  // =============================
+
+  Future<void> _sharePost() async {
+    debugPrint("SHARE BUTTON PRESSED");
+    if (_titleController.text.trim().isEmpty ||
+        _descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Title and description required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Capture context-dependent objects before any await
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() {
+      _isCategorizing = true;
+    });
+
+    try {
+      final title = _titleController.text.trim();
+      final description = _descriptionController.text.trim();
+
+      // Run categorisation and type classification in parallel (both independent)
+      final firstPass = await Future.wait([
+        _categorizePost(title, description),
+        _classifyPostType(title, description),
+      ]);
+
+      final categorizationResult = firstPass[0] as Map<String, dynamic>;
+      final postType = firstPass[1] as String;
+
+      final categoryIds = categorizationResult['categoryIds'] as List<String>;
+      final categoryNames =
+          categorizationResult['categoryNames'] as Map<String, String>;
+
+      setState(() {
+        _categoryIds = categoryIds;
+        _categoryNames = categoryNames;
+      });
+
+      // AI Sentiment Analysis
+      final sentimentResult = await _analyzeSentiment(title, description);
+
+      // AI Priority Analysis
+      final priorityResult =
+          await _analyzePriority(title, description, categoryIds, _selectedLocation);
+
+      // Upload images if any
+      final postService = PostService();
+      List<String> imageUrls = [];
+
+      if (_uploadedFiles.isNotEmpty) {
+        imageUrls = await postService.uploadImages(_uploadedFiles);
+      }
+
+      if (auth.userId == null) {
+        throw Exception("You must be logged in to post.");
+      }
+
+      // Create post object
+      final post = Post(
+        title: title,
+        description: description,
+        authorId: auth.userId!,
+        authorName: auth.displayNameOrFallback,
+        authorRole: auth.userRole,
+        authorPhotoUrl: auth.photoUrl ?? '',
+        location: _selectedLocation,
+        imageUrls: imageUrls,
+        categoryIds: _categoryIds,
+        sentiment: sentimentResult,
+        priority: priorityResult,
+        createdAt: DateTime.now(),
+        type: postType,
+      );
+
+      // Save to Firebase
+      await postService.createPost(post);
+
+      final label = postType == 'issue' ? 'Issue' : 'Post';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              '$label shared with categories: ${_categoryNames.values.join(", ")}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      if (mounted) context.pop();
+    } catch (e) {
+      debugPrint("Share error: $e");
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCategorizing = false;
+        });
+      }
+    }
+  }
+
+  // =============================
+  // UI BUILD
+  // =============================
 
   // =============================
   // UI BUILD
