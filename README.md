@@ -40,13 +40,13 @@ This communication breakdown erodes public trust and leads to deteriorating urba
 |-----|------|--------------------------|
 | **SDG 11** | Sustainable Cities and Communities | Enables citizens to report and track urban infrastructure issues, improving city livability |
 | **SDG 16** | Peace, Justice and Strong Institutions | Creates transparent, accountable channels between citizens and local authorities |
-| **SDG 17** | Partnerships for the Goals | Bridges the gap between community members, management teams, and government agencies |
+| **SDG 3**  | Good Health and Well-being | reduce the number of illnesses from hazardous chemicals and air, water and soil pollution and contamination |
 
 ### 💡 Solution
 
 **CommUnity** is a cross-platform Flutter application that creates a **bidirectional communication channel** between community residents and their local management authorities. The app enables:
 
-- 📣 **Citizens** to report community issues with photos, location tags, and descriptions — enhanced by Gemini AI
+- 📣 **User** to report community issues with photos, location tags, and descriptions — enhanced by Gemini AI
 - 🏛️ **Management teams** to receive, prioritise, respond to, and close issues with AI-assisted proof verification
 - 👁️ **Super Admins** to monitor community health through KPI dashboards, AI sentiment analysis, geographic heatmaps, and broadcast messaging
 
@@ -343,7 +343,7 @@ Community members see resolution in real time
 | Priority | Feature | Description |
 |----------|---------|-------------|
 | 🔴 High | **Push Notifications** | Notify citizens when their reported issue changes status; alert management of new critical issues |
-| 🔴 High | **Offline Support** | Cache feed and issue data locally so the app remains usable without internet |
+| 🔴 High | **Super Admin Role** | New Role for City Councils to oversee performance of management communities and determine whether reallocation of resources is required |
 | 🟡 Medium | **Gamification** | Introduce a points and badge system to reward active community contributors |
 | 🟡 Medium | **Multi-Language Support** | Localise the app for Bahasa Malaysia, Mandarin, and Tamil to serve Malaysia's diverse population |
 | 🟡 Medium | **Advanced Analytics** | Deeper trend analysis — issue recurrence rates, seasonal patterns, zone comparisons |
