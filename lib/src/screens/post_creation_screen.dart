@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
-
+import '../../gemini_config.dart'; // 引入你的 API Key 变量
 import '../../gemeni_service.dart';
 import '../widgets/category_tags.dart';
 import '../models/post.dart';
@@ -588,7 +588,7 @@ Return ONLY one word: "issue" or "post". No explanation, no punctuation.
       );
 
       // Save to Firebase
-      await postService.createPost(post);
+      await postService.createPost(post, apiKey: geminiApiKey);
 
       final label = postType == 'issue' ? 'Issue' : 'Post';
       messenger.showSnackBar(
