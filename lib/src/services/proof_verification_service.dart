@@ -5,12 +5,10 @@ import 'package:flutter/foundation.dart';
 import '../../gemeni_service.dart';
 import '../models/proof_verification.dart';
 import '../models/comment.dart';
-import 'post_service.dart';
 
 /// Service for AI-powered proof of work verification
 class ProofVerificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final PostService _postService = PostService();
 
   /// Step 1: Generate AI context summary from post comments
   Future<String> _generateContextSummary(String postId) async {

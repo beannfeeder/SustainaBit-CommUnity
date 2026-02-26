@@ -92,7 +92,7 @@ class _HeatmapDashboardScreenState extends State<HeatmapDashboardScreen> {
       tempPolygons.add(Polygon(
         polygonId: PolygonId(zone.id),
         points: zone.boundary,
-        fillColor: zoneColor.withOpacity(0.25),
+        fillColor: zoneColor.withValues(alpha: 0.25),
         strokeColor: zoneColor,
         strokeWidth: 2,
         consumeTapEvents: true, // 允许点击多边形触发事件
@@ -126,7 +126,7 @@ class _HeatmapDashboardScreenState extends State<HeatmapDashboardScreen> {
     final Canvas canvas = Canvas(pictureRecorder);
     
     // 绘制外圈阴影/边框
-    final Paint shadowPaint = Paint()..color = Colors.white.withOpacity(0.8);
+    final Paint shadowPaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
     canvas.drawCircle(const Offset(size/2, size/2), size/2.2, shadowPaint);
 
     // 绘制主体圆形
@@ -148,7 +148,7 @@ class _HeatmapDashboardScreenState extends State<HeatmapDashboardScreen> {
 
     final img = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
     final data = await img.toByteData(format: ImageByteFormat.png);
-    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
 
   LatLng _calculateCenter(List<LatLng> points) {

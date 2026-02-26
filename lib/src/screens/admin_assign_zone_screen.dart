@@ -63,7 +63,7 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
                   points: _polygonPoints,
                   strokeWidth: 2,
                   strokeColor: Colors.black87,
-                  fillColor: Colors.blueAccent.withOpacity(0.2),
+                  fillColor: Colors.blueAccent.withValues(alpha: 0.2),
                 )
               };
 
@@ -176,7 +176,9 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
           setState(() { _searchController.text = fullAddress; });
           _mapController?.animateCamera(CameraUpdate.newLatLngZoom(LatLng(location['lat'], location['lng']), 16.0));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location not found')));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location not found')));
+          }
         }
       }
     } catch (e) {
@@ -199,7 +201,7 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
           points: _polygonPoints,
           strokeWidth: 2,
           strokeColor: Colors.black87,
-          fillColor: Colors.blueAccent.withOpacity(0.2), 
+          fillColor: Colors.blueAccent.withValues(alpha: 0.2), 
         )
       };
 
