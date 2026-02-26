@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
 import '../models/comment.dart';
@@ -35,6 +36,11 @@ class _IssueDetailPageState extends State<IssueDetailPage> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+
+  String _formatDateTime(DateTime? dt) {
+    if (dt == null) return '';
+    return DateFormat('d MMM yyyy, HH:mm').format(dt);
   }
 
   String _urgencyLabel(Map<String, dynamic>? priority) {
@@ -433,10 +439,12 @@ class _IssueDetailPageState extends State<IssueDetailPage> {
                     )
                   : const Icon(Icons.check_circle_outline),
               label:
-                  Text(_isSubmittingProof ? 'Submitting…' : 'Submit Proof'),
+                  Text(_isSubmittingProof ? 'AI is evaluating the work…' : 'Submit Proof'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade600,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.green.shade400,
+                disabledForegroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -648,7 +656,7 @@ class _IssueDetailPageState extends State<IssueDetailPage> {
                 const SizedBox(height: 4),
                 Text(comment.content,
                     style: const TextStyle(
-                        fontSize: 13, color: AppTheme.textSecondary)),
+                        fontSize: 13, color: AppTheme.textPrimary)),
               ],
             ),
           ),
@@ -865,7 +873,7 @@ class _IssueDetailPageState extends State<IssueDetailPage> {
         color: Colors.greenAccent,
         title:
             'Issue raised by ${issue.authorName.isNotEmpty ? issue.authorName : "User"}',
-        time: _timeAgo(issue.createdAt),
+        time: _formatDateTime(issue.createdAt),
       ),
     ];
 
@@ -874,27 +882,27 @@ class _IssueDetailPageState extends State<IssueDetailPage> {
     if (status == 'in progress') {
       entries.insert(
         0,
-        const _TimelineEntry(
+        _TimelineEntry(
           color: Colors.amber,
           title: 'Issue assigned and being worked on',
-          time: '',
+          time: _formatDateTime(issue.inProgressAt),
         ),
       );
     } else if (status == 'resolved' || status == 'completed') {
       entries.insert(
         0,
-        const _TimelineEntry(
+        _TimelineEntry(
           color: Colors.green,
           title: 'Issue resolved',
-          time: '',
+          time: _formatDateTime(issue.resolvedAt),
         ),
       );
       entries.insert(
         1,
-        const _TimelineEntry(
+        _TimelineEntry(
           color: Colors.amber,
           title: 'Issue assigned and worked on',
-          time: '',
+          time: _formatDateTime(issue.inProgressAt),
         ),
       );
     }
@@ -939,8 +947,9 @@ class _IssueDetailPageState extends State<IssueDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary)),
                 if (time.isNotEmpty)
                   Text(time,
                       style: const TextStyle(

@@ -351,9 +351,11 @@ Do NOT return any other text.
 
   /// Update the status field of an issue.
   Future<void> updateIssueStatus(String postId, String status) async {
-    await _firestore.collection(_collectionName).doc(postId).update({
-      'status': status,
-    });
+    final data = <String, dynamic>{'status': status};
+    if (status == 'In Progress') {
+      data['inProgressAt'] = FieldValue.serverTimestamp();
+    }
+    await _firestore.collection(_collectionName).doc(postId).update(data);
   }
 
   /// Upload proof images, save their URLs to the issue, and mark it Resolved.
@@ -363,6 +365,7 @@ Do NOT return any other text.
     await _firestore.collection(_collectionName).doc(postId).update({
       'status': 'Resolved',
       'proofImageUrls': urls,
+      'resolvedAt': FieldValue.serverTimestamp(),
     });
   }
 

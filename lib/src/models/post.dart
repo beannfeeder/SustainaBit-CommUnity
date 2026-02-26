@@ -30,6 +30,9 @@ class Post {
   final String? originalPostId;
   // 👆 --------------------------- 👆
 
+  final DateTime? inProgressAt;
+  final DateTime? resolvedAt;
+
   Post({
     this.id,
     required this.title,
@@ -54,10 +57,12 @@ class Post {
     this.verificationId,
     this.verifiedAt,
     this.proofImageUrls = const [],
-    
+
     // 👇 新增字段的默认值
     this.isDuplicate = false,
     this.originalPostId,
+    this.inProgressAt,
+    this.resolvedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -88,6 +93,8 @@ class Post {
       // 👇 将新字段写入 Firebase
       'isDuplicate': isDuplicate,
       'originalPostId': originalPostId,
+      'inProgressAt': inProgressAt != null ? Timestamp.fromDate(inProgressAt!) : null,
+      'resolvedAt': resolvedAt != null ? Timestamp.fromDate(resolvedAt!) : null,
     };
   }
 
@@ -123,6 +130,12 @@ class Post {
       // 👇 从 Firebase 读取新字段，如果旧数据没有这个字段就给默认值
       isDuplicate: data['isDuplicate'] ?? false,
       originalPostId: data['originalPostId'],
+      inProgressAt: data['inProgressAt'] != null
+          ? (data['inProgressAt'] as Timestamp).toDate()
+          : null,
+      resolvedAt: data['resolvedAt'] != null
+          ? (data['resolvedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 }
