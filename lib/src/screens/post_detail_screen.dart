@@ -1,368 +1,535 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../widgets/app_top_bar.dart';
-import '../widgets/app_bottom_nav.dart';
+import 'package:provider/provider.dart';
+import '../models/post.dart';
+import '../models/comment.dart';
+import '../providers/auth_provider.dart';
+import '../services/post_service.dart';
+import '../widgets/user_avatar.dart';
+import '../widgets/category_tags.dart';
 
 class PostDetailScreen extends StatefulWidget {
-  const PostDetailScreen({super.key});
+  final String postId;
+  const PostDetailScreen({super.key, required this.postId});
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  int _selectedNavIndex = 0;
+  final TextEditingController _commentController = TextEditingController();
+  bool _isSubmitting = false;
+  String? _userVote; // 'up', 'down', or null
 
-  // TODO: Replace with actual post data from backend/API
-  final Map<String, dynamic> _mockPostData = {
-    'username': 'Management',
-    'location': 'Jalan Jati Perkasa',
-    'timeAgo': '1 hour ago',
-    'status': 'Resolved',
-    'statusColor': const Color(0xFF4CAF50),
-    'title': 'Large Pothole on Main Road',
-    'description':
-        "There's a large pothole on the main road that causes a lot of minor incidents. This needs to be take into notice by management and act immediately!",
-    'tags': [
-      {'label': 'Emergency', 'color': const Color(0xFFFF8A80)},
-      {'label': 'Damaged Infrastructure', 'color': const Color(0xFFFFD54F)},
-    ],
-    'imageUrl': 'placeholder',
-    'likes': 9,
-    'views': '653,234 Views',
-    'comments': '56 comments',
-  };
+  bool get _isDemo => widget.postId == 'demo';
 
-  // TODO: Replace with actual comments data from backend/API
-  // Fetch from API endpoint like: GET /api/posts/{postId}/comments
-  final List<Map<String, dynamic>> _mockComments = [
-    {
-      'id': '1',
-      'username': 'derrick@home',
-      'timeAgo': '1 hour ago',
-      'comment': '@Management pls deal with this problem!',
-    },
-    {
-      'id': '2',
-      'username': 'derrick@home',
-      'timeAgo': '1 hour ago',
-      'comment': '@Management pls deal with this problem!',
-    },
-    {
-      'id': '3',
-      'username': 'vibe123',
-      'timeAgo': '1 hour ago',
-      'comment': 'Agreed. Please address this issue as soon as possible!',
-    },
-    {
-      'id': '4',
-      'username': 'derrick@home',
-      'timeAgo': '1 hour ago',
-      'comment': '@Management pls deal with this problem!',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    if (!_isDemo) {
+      _loadUserVote();
+      PostService().incrementViews(widget.postId);
+    }
+  }
+
+  Future<void> _loadUserVote() async {
+    final userId = context.read<AuthProvider>().userId;
+    if (userId == null) return;
+    final vote = await PostService().getUserVote(widget.postId, userId);
+    if (mounted) setState(() => _userVote = vote);
+  }
+
+  Future<void> _submitComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty) return;
+    final auth = context.read<AuthProvider>();
+    if (auth.userId == null) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await PostService().addComment(
+        widget.postId,
+        Comment(
+          authorId: auth.userId!,
+          authorName: auth.displayNameOrFallback,
+          authorRole: auth.userRole,
+          authorPhotoUrl: auth.photoUrl ?? '',
+          content: text,
+          createdAt: DateTime.now(),
+        ),
+      );
+      _commentController.clear();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Failed to post comment: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _handleUpvote(Post post) async {
+    final userId = context.read<AuthProvider>().userId;
+    if (userId == null) return;
+    await PostService().upvotePost(post.id!, userId);
+    await _loadUserVote();
+  }
+
+  Future<void> _handleDownvote(Post post) async {
+    final userId = context.read<AuthProvider>().userId;
+    if (userId == null) return;
+    await PostService().downvotePost(post.id!, userId);
+    await _loadUserVote();
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppTopBar(
-        onMenuPressed: () {
-          Navigator.pop(context);
-        },
-        onSearchPressed: () {
-          // TODO: Navigate to search
-        },
-        onNotificationPressed: () {
-          // TODO: Navigate to notifications
-        },
-        onProfilePressed: () {
-          context.push('/profile');
-        },
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Post Header Section
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // User Info Row
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.grey[300],
-                        child: const Icon(Icons.person, color: Colors.white),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _mockPostData['username'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_mockPostData['location']} • ${_mockPostData['timeAgo']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _mockPostData['statusColor'],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _mockPostData['status'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Post Title
-                  Text(
-                    _mockPostData['title'],
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Tags
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: (_mockPostData['tags'] as List)
-                        .map((tag) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: tag['color'],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                tag['label'],
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  // Post Description
-                  Text(
-                    _mockPostData['description'],
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[800],
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Post Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      height: 250,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                      ),
-                      child: Icon(
-                        Icons.image,
-                        size: 80,
-                        color: Colors.grey[400],
-                      ),
-                      // TODO: Replace with actual image from backend
-                      // child: Image.network(
-                      //   _mockPostData['imageUrl'],
-                      //   fit: BoxFit.cover,
-                      // ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Stats Row
-                  Row(
-                    children: [
-                      _buildStat(
-                        Icons.thumb_up_outlined,
-                        _mockPostData['likes'].toString(),
-                        Colors.blue,
-                      ),
-                      const SizedBox(width: 16),
-                      _buildStat(
-                        Icons.visibility_outlined,
-                        _mockPostData['views'],
-                        Colors.grey[600]!,
-                      ),
-                      const SizedBox(width: 16),
-                      _buildStat(
-                        Icons.comment_outlined,
-                        _mockPostData['comments'],
-                        Colors.grey[600]!,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Duplicate Post Notice
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF4E5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: Color(0xFFFF9800),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF795548),
-                        ),
-                        children: [
-                          TextSpan(
-                            text: 'This is a duplicated post. ',
-                          ),
-                          TextSpan(
-                            text: 'View source post here.',
-                            style: TextStyle(
-                              decoration: TextDecoration.underline,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            Divider(thickness: 1, color: Colors.grey[300]),
-
-            // Comments Section
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Comments (${_mockComments.length})',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // TODO: Replace with actual comments from backend
-                  // Fetch from API: GET /api/posts/{postId}/comments
-                  // Map response to Comment widgets
-                  ..._mockComments.map((comment) => _CommentItem(
-                        username: comment['username'],
-                        timeAgo: comment['timeAgo'],
-                        comment: comment['comment'],
-                      )),
-                  const SizedBox(height: 80),
-                ],
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black87),
+          tooltip: 'Close',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: _selectedNavIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (index == 0) {
-            context.go('/home');
-          } else if (index == 2) {
-            context.push('/profile');
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF4A90E2),
-        onPressed: () {
-          // TODO: Navigate to create post or add comment
-        },
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      body: _isDemo ? _buildDemoBody() : _buildLiveBody(),
     );
   }
 
-  Widget _buildStat(IconData icon, String label, Color color) {
-    return Row(
+  // ── Live (real Firestore post) ────────────────────────────────────────────
+
+  Widget _buildLiveBody() {
+    return FutureBuilder<Post?>(
+      future: PostService().getPostById(widget.postId),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError || snap.data == null) {
+          return const Center(child: Text('Post not found.'));
+        }
+        final post = snap.data!;
+        return Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  // 👇 新增：如果这是重复贴，展示跳转横幅
+                  if (post.isDuplicate && post.originalPostId != null)
+                    _DuplicateBanner(originalPostId: post.originalPostId!),
+                  
+                  _PostHeader(post: post, timeAgo: _timeAgo(post.createdAt)),
+                  _VoteBar(
+                    post: post,
+                    userVote: _userVote,
+                    onUpvote: () => _handleUpvote(post),
+                    onDownvote: () => _handleDownvote(post),
+                  ),
+                  Divider(thickness: 1, color: Colors.grey[200]),
+                  _CommentsList(postId: widget.postId, timeAgo: _timeAgo),
+                ],
+              ),
+            ),
+            _CommentInputBar(
+              controller: _commentController,
+              isSubmitting: _isSubmitting,
+              onSubmit: _submitComment,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Demo fallback ─────────────────────────────────────────────────────────
+  Widget _buildDemoBody() {
+    return Column(
       children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color,
+        Expanded(
+          child: ListView(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Large Pothole on Main Road',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text('Jalan Jati Perkasa • 1 hour ago',
+                        style:
+                            TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "There's a large pothole on the main road that causes a lot of minor incidents.",
+                      style: TextStyle(fontSize: 14, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+        ),
+        _CommentInputBar(
+          controller: _commentController,
+          isSubmitting: _isSubmitting,
+          onSubmit: _submitComment,
         ),
       ],
     );
   }
 }
 
-class _CommentItem extends StatelessWidget {
-  final String username;
-  final String timeAgo;
-  final String comment;
+// ────────────────────────────────────────────────────────────────────────────
+// Sub-widgets
+// ────────────────────────────────────────────────────────────────────────────
 
-  const _CommentItem({
-    required this.username,
-    required this.timeAgo,
-    required this.comment,
+// 👇 新增的横幅组件
+class _DuplicateBanner extends StatelessWidget {
+  final String originalPostId;
+  const _DuplicateBanner({required this.originalPostId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 16, right: 16, top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Duplicate Report',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'This issue has already been reported by someone else.',
+                  style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade600,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            onPressed: () {
+              // 👉 提示：这里的路由地址如果跟你 app_router.dart 里的不同，请自行修改！
+              // 这里假设你的详情页路由长得像 /issue/123 或 /post/123
+                context.pushNamed(
+                'post-detail',
+                pathParameters: {'postId': originalPostId},
+              );
+            },
+            
+            child: const Text('View Original'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+// 👆 --------------------
+
+class _PostHeader extends StatelessWidget {
+  final Post post;
+  final String timeAgo;
+  const _PostHeader({required this.post, required this.timeAgo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Author row
+          Row(
+            children: [
+              UserAvatar(
+                photoUrl:
+                    post.authorPhotoUrl.isNotEmpty ? post.authorPhotoUrl : null,
+                radius: 20,
+                isManagement: post.authorRole == 'management',
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.authorRole == 'management'
+                          ? 'Management'
+                          : (post.authorName.isNotEmpty
+                              ? post.authorName
+                              : post.authorId),
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14),
+                    ),
+                    Text(
+                      '${post.location ?? 'Unknown'} • $timeAgo',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              if (post.type == 'issue') _StatusBadge(status: post.status),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(post.title,
+              style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          // Category Tags
+          if (post.categoryIds.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            CategoryTags(categoryIds: post.categoryIds),
+          ],
+          const SizedBox(height: 12),
+          Text(post.description,
+              style: TextStyle(
+                  fontSize: 14, color: Colors.grey[800], height: 1.5)),
+          // Images
+          if (post.imageUrls.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: post.imageUrls.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) => ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    post.imageUrls[i],
+                    width: 280,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 280,
+                      color: Colors.grey[200],
+                      child: Icon(Icons.broken_image, color: Colors.grey[400]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          // View counter
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.visibility_outlined,
+                  size: 14, color: Colors.grey[500]),
+              const SizedBox(width: 4),
+              Text('${post.views} views',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VoteBar extends StatelessWidget {
+  final Post post;
+  final String? userVote;
+  final VoidCallback onUpvote;
+  final VoidCallback onDownvote;
+  const _VoteBar({
+    required this.post,
+    required this.userVote,
+    required this.onUpvote,
+    required this.onDownvote,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    final score = post.upvotes - post.downvotes;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.grey[50],
+      child: Row(
+        children: [
+          // Upvote
+          _VoteButton(
+            icon: Icons.arrow_upward_rounded,
+            active: userVote == 'up',
+            activeColor: Colors.deepOrange,
+            onTap: onUpvote,
+          ),
+          // Score
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              score >= 0 ? '+$score' : '$score',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: score > 0
+                    ? Colors.deepOrange
+                    : score < 0
+                        ? Colors.indigo
+                        : Colors.grey[700],
+              ),
+            ),
+          ),
+          // Downvote
+          _VoteButton(
+            icon: Icons.arrow_downward_rounded,
+            active: userVote == 'down',
+            activeColor: Colors.indigo,
+            onTap: onDownvote,
+          ),
+          const SizedBox(width: 16),
+          // Raw counts
+          Text(
+            '${post.upvotes}↑  ${post.downvotes}↓',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VoteButton extends StatelessWidget {
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+  const _VoteButton({
+    required this.icon,
+    required this.active,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: active ? activeColor.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? activeColor : Colors.grey[300]!,
+            width: 1.5,
+          ),
+        ),
+        child: Icon(icon,
+            size: 20, color: active ? activeColor : Colors.grey[600]),
+      ),
+    );
+  }
+}
+
+class _CommentsList extends StatelessWidget {
+  final String postId;
+  final String Function(DateTime) timeAgo;
+  const _CommentsList({required this.postId, required this.timeAgo});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Comment>>(
+      stream: PostService().getCommentsStream(postId),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final comments = snap.data ?? [];
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Comments (${comments.length})',
+                style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              if (comments.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text('No comments yet. Be the first!',
+                        style: TextStyle(color: Colors.grey[500])),
+                  ),
+                )
+              else
+                ...comments
+                    .map((c) => _CommentTile(comment: c, timeAgo: timeAgo)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  final Comment comment;
+  final String Function(DateTime) timeAgo;
+  const _CommentTile({required this.comment, required this.timeAgo});
 
   @override
   Widget build(BuildContext context) {
@@ -371,10 +538,12 @@ class _CommentItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          UserAvatar(
+            photoUrl: comment.authorPhotoUrl.isNotEmpty
+                ? comment.authorPhotoUrl
+                : null,
             radius: 16,
-            backgroundColor: Colors.grey[300],
-            child: const Icon(Icons.person, color: Colors.white, size: 16),
+            isManagement: comment.authorRole == 'management',
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -384,39 +553,41 @@ class _CommentItem extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      username,
+                      comment.authorRole == 'management'
+                          ? 'Management'
+                          : (comment.authorName.isNotEmpty
+                              ? comment.authorName
+                              : comment.authorId),
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: Colors.black,
-                      ),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: Colors.black),
                     ),
+                    if (comment.authorRole == 'management') ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4A90E2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('MOD',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                     const SizedBox(width: 8),
-                    Text(
-                      timeAgo,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
-                      ),
-                    ),
+                    Text(timeAgo(comment.createdAt),
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.grey[500])),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  comment,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildCommentAction(Icons.thumb_up_outlined, '0'),
-                    const SizedBox(width: 16),
-                    _buildCommentAction(Icons.thumb_down_outlined, '0'),
-                  ],
-                ),
+                Text(comment.content,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[800])),
               ],
             ),
           ),
@@ -424,20 +595,104 @@ class _CommentItem extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCommentAction(IconData icon, String count) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.grey[600]),
-        const SizedBox(width: 4),
-        Text(
-          count,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[600],
+class _CommentInputBar extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isSubmitting;
+  final VoidCallback onSubmit;
+  const _CommentInputBar({
+    required this.controller,
+    required this.isSubmitting,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          12, 8, 12, MediaQuery.of(context).viewInsets.bottom + 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, -2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Consumer<AuthProvider>(
+            builder: (_, auth, __) => UserAvatar(
+              photoUrl: auth.photoUrl,
+              radius: 16,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              minLines: 1,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Add a comment…',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF4A90E2), width: 1.5),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          isSubmitting
+              ? const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : IconButton(
+                  onPressed: onSubmit,
+                  icon: const Icon(Icons.send_rounded),
+                  color: const Color(0xFF4A90E2),
+                  tooltip: 'Post comment',
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = status == 'Resolved'
+        ? const Color(0xFF4CAF50)
+        : const Color(0xFF2196F3);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      child: Text(status,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }
