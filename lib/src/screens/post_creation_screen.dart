@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../gemeni_service.dart';
+import '../../gemini_service.dart';
 import '../../gemini_config.dart'; // 👈 引入了你的 API Key 配置文件
 import '../widgets/category_tags.dart';
 import '../models/post.dart';

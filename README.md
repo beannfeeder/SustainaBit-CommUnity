@@ -56,7 +56,8 @@ This communication breakdown erodes public trust and leads to deteriorating urba
 
 ### For Community Members
 - **Community Forum** — Browse and engage with community posts and official announcements with an upvote/downvote system
-- **Issue Reporting** — Submit geo-tagged issue reports with photo evidence, categorised and prioritised automatically by AI
+- **AI-Powered Issue Reporting** — Submit geo-tagged issue reports with photo evidence, intelligently processed by Gemini AI
+- **AI Auto-Categorization** — Gemini AI analyzes issue content and automatically assigns relevant category tags (e.g., Damaged Infrastructure, Emergency, Social Event) without manual input
 - **AI Content Enhancement** — Gemini AI improves post clarity, suggests categories, and enriches descriptions before submission
 - **Issue Tracking** — Track the status of submitted issues (Pending → In Progress → Resolved) in real time
 - **User Profile** — View your post history, submitted issues, and community activity
@@ -64,15 +65,16 @@ This communication breakdown erodes public trust and leads to deteriorating urba
 - **Google Sign-In** — Seamless, secure authentication with a single tap
 
 ### For Management Teams
-- **Management Dashboard** — Centralised view of all pending and in-progress community issues
+- **AI Priority Analysis** — Gemini AI automatically assigns priority levels (critical/high/medium/low) to issue reports based on urgency, safety risks, and community impact
+- **Management Dashboard** — Centralised view of all pending and in-progress community issues with AI-assigned priorities
 - **Announcement Publishing** — Broadcast official announcements to the community
-- **Proof of Work Submission** — Upload evidence photos when resolving issues; AI verifies the proof and updates the status
+- **AI Proof-of-Work Verification** — Upload evidence photos when resolving issues; Gemini AI verifies the proof against issue context and updates the status
 - **Zone Assignment** — Assign management responsibilities across geographic zones
-- **Duplicate Detection** — AI automatically identifies and suppresses duplicate issue reports
+- **AI Duplicate Detection** — Gemini AI automatically identifies and suppresses duplicate issue reports, linking them to original submissions
+- **AI Sentiment Analysis** — Gemini AI-powered analysis of public sentiment from community posts to identify emerging concerns and community mood trends
 
 ### For Super Admins
 - **KPI Monitor** — Real-time team performance metrics (resolution rates, SLA compliance, response times)
-- **AI Sentiment Analysis** — Gemini-powered analysis of public sentiment from community posts
 - **Geographic Heatmap** — Google Maps–based visualisation of issue density across management zones
 - **Broadcast Center** — Send targeted or jurisdiction-wide notifications using customisable templates
 - **Issue Intervention** — Identify and escalate SLA-breaching issues for urgent action
@@ -91,7 +93,7 @@ This communication breakdown erodes public trust and leads to deteriorating urba
 | **Google Sign-In** | One-tap OAuth login for community members and management |
 | **Google Maps Flutter** | Interactive maps for location tagging, heatmaps, and zone boundaries |
 | **Google Maps Cluster Manager** | Marker clustering for issue density visualisation |
-| **Google Generative AI (Gemini)** | AI content enhancement, auto-categorisation, sentiment analysis, duplicate detection, and proof-of-work verification |
+| **Google Generative AI (Gemini)** | AI content enhancement, auto-categorisation, sentiment analysis, priority analysis, duplicate detection, and proof-of-work verification |
 | **Firebase Core** | Firebase SDK initialisation and app configuration |
 
 ### Other Supporting Tools & Libraries
@@ -200,6 +202,7 @@ Tap "Report Issue" → Post Creation Screen
 AI Enhancement (Gemini):
   • Rewrites description for clarity
   • Auto-suggests categories
+  • Analyzes user sentiment level
   • Assigns priority level
     ↓
 Geolocator tags the location
@@ -234,7 +237,8 @@ Community members see resolution in real time
 #### AI Innovation Highlights
 
 - **Content Enhancement**: When creating a post, users can trigger Gemini AI to rewrite their description in a clearer, more structured format — lowering the barrier for non-technical community members.
-- **Auto-Categorisation**: Gemini analyses the post content and automatically assigns relevant category tags (e.g., "Pothole", "Drainage", "Streetlight"), reducing manual effort.
+- **Auto-Categorisation**: Gemini analyses the post content and automatically assigns relevant category tags (e.g., "Damaged Infrastructure", "Social Event", "Emergency"), reducing manual effort by creating broad, reusable categories.
+- **Priority Analysis**: Gemini evaluates each issue submission and automatically assigns a priority level (critical, high, medium, low, or none) with a confidence score (0-100). The AI considers factors like immediate danger to life, property damage, safety hazards, and urgency to help management teams triage and respond to the most critical issues first — ensuring resources are allocated effectively.
 - **Duplicate Detection**: New issue submissions are compared against existing open issues using Gemini; detected duplicates are suppressed from the feed and linked to the original report.
 - **Proof-of-Work Verification**: Management teams submit before/after photos when resolving an issue. Gemini evaluates the evidence against the issue description and community comments to produce a verified, partial, or insufficient verdict — creating an accountability layer that was previously missing.
 - **Sentiment Analysis**: Super admins see an AI-powered analysis of community sentiment across all forum posts, helping them identify unhappy areas or emerging concerns before they escalate.
