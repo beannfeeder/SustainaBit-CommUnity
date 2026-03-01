@@ -295,15 +295,21 @@ Community members see resolution in real time
 
 3. **Configure API keys**
 
-   Create `lib/src/config/api_key.dart` with your Google Maps API key:
-   ```dart
-   const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+   Copy the `.env.example` file to `.env` and add your actual API keys:
+   ```bash
+   cp .env.example .env
    ```
 
-   Update `lib/gemini_config.dart` with your Gemini API key:
-   ```dart
-   const String geminiApiKey = 'YOUR_GEMINI_API_KEY';
+   Edit `.env` and replace the placeholder values with your actual keys:
+   ```env
+   # Gemini AI API Key 
+   GEMINI_API_KEY=your_actual_gemini_api_key
+
+   # Google Maps API Key 
+   GOOGLE_MAPS_API_KEY=your_actual_google_maps_api_key
    ```
+
+   ⚠️ **Important**: Never commit the `.env` file to version control. It's already listed in `.gitignore`.
 
 4. **Set up Firestore security rules**
 
