@@ -4,7 +4,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:go_router/go_router.dart'; // 🌟 新增导入路由包
+import 'package:go_router/go_router.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AdminAssignZoneScreen extends StatefulWidget {
   const AdminAssignZoneScreen({super.key});
@@ -21,7 +22,8 @@ class _AdminAssignZoneScreenState extends State<AdminAssignZoneScreen> {
   Set<Polygon> _polygons = {};
   final Set<Marker> _markers = {};
 
-  final String _googleApiKey = "AIzaSyANJht0xA4ES_dETC14bC3L9yJuYjiHkuE";
+  // Load Google Maps API key from environment variables
+  String get _googleApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
   // 状态控制
   List<dynamic> _placeList = [];

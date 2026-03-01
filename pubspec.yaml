@@ -37,6 +37,7 @@ dependencies:
   google_maps_cluster_manager: ^3.0.0+1
   geolocator: ^14.0.2
   google_generative_ai: ^0.4.7
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +48,7 @@ flutter:
   uses-material-design: true
 
   # Assets
-  # assets:
+  assets:
+    - .env
   #   - assets/images/
   #   - assets/icons/

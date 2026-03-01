@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // 👉 唯一添加的一行：引入数据库包，为你接下来操作数据做准备
 import 'src/config/app_theme.dart';
 import 'src/routes/app_router.dart';
@@ -12,6 +13,9 @@ import 'firebase_options.dart'; // ✅ 已经取消注释，引入你刚才生�
 Future<void> main() async {
   // 必须保留：确保 Flutter 引擎初始化
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables from .env file
+  await dotenv.load(fileName: ".env");
   
   // 必须保留：初始化你的本地存储服务
   await StorageService.init();

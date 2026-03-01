@@ -82,3 +82,6 @@ coverage/
 # Developer-specific
 devtools_options.yaml
 package-lock.json
+
+# Environment variables (contains API keys)
+.env

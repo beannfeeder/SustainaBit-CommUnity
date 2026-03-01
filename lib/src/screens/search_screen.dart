@@ -6,7 +6,7 @@ import '../models/post.dart';
 import '../services/post_service.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/post_card.dart';
-import '../config/api_key.dart';
+import '../../gemini_config.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
