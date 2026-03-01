@@ -298,7 +298,7 @@ class _VoteButton extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
-          color: active ? activeColor.withOpacity(0.12) : Colors.transparent,
+          color: active ? activeColor.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: active ? activeColor : Colors.grey[300]!, width: 1.5),

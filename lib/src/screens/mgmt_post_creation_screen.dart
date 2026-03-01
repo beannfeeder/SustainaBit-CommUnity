@@ -394,17 +394,15 @@ class _MgmtPostCreationScreenState extends State<MgmtPostCreationScreen> {
 
       await postService.createPost(post);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Post shared successfully!'),
-            backgroundColor: Colors.green));
-        context.pop();
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Post shared successfully!'),
+          backgroundColor: Colors.green));
+      context.pop();
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Failed to post: $e'), backgroundColor: Colors.red));
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to post: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

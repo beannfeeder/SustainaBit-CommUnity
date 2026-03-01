@@ -101,7 +101,8 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
     }
 
     try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
       String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$_googleApiKey";
       final response = await http.get(Uri.parse(url));
       
@@ -441,6 +442,7 @@ class _WelcomeRegistrationScreenState extends State<WelcomeRegistrationScreen> {
                       }
                       // -- 新增 Firebase 保存逻辑结束 --
 
+                      if (!context.mounted) return;
                       final dest = isManagement ? '/mgmt-dashboard' : '/home?user_location=${Uri.encodeComponent(location)}';
                       context.go(dest);
                     } else {
