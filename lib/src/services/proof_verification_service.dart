@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../gemeni_service.dart';
+import '../../gemini_service.dart';
 import '../models/proof_verification.dart';
 import '../models/comment.dart';
 import 'post_service.dart';
